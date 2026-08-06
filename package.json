@@ -14,7 +14,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/vansh-vm04/tars/issues"
   },
@@ -23,5 +23,8 @@
     "@types/node": "^26.1.2",
     "tsx": "^4.23.9",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@google/genai": "^2.16.0"
   }
 }

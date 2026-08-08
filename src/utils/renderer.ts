@@ -20,7 +20,6 @@ marked.use(
   }) as any,
 );
 
-export function renderMarkdown(text: string): string {
-  const normalized = text.replace(/\\([*_`#])/g, "$1");
-  return marked.parse(normalized) as string;
+export default function renderMarkdown(text: string): string {
+  return marked.parse(text) as string;
 }

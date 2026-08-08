@@ -4,10 +4,11 @@ import type { GenerateContentResponse } from "@google/genai";
 
 export const runAgentLoop = async (
   model: string,
+  initialMessages: AgentMessage[],
   newMessages: string[],
   context: Context,
 ) => {
-  let messages: AgentMessage[] = [];
+  let messages: AgentMessage[] = initialMessages;
   let tools = context.tools || [];
   let systemPrompt = context.systemPrompt;
   let interaction: GenerateContentResponse | undefined;
@@ -83,8 +84,10 @@ export const runAgentLoop = async (
     }
   }
 
-  return (
-    (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content
-      ?.parts?.[0]?.text || ""
-  );
+  return {
+    finalResponse:
+      (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content
+        ?.parts?.[0]?.text || "",
+    messages,
+  };
 };

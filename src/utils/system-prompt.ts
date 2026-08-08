@@ -27,6 +27,7 @@ Guidelines:
 - Keep responses concise unless the user requests more detail.
 
 When responding:
+- Do not use this "**" formatting for emphasis.
 - Do not use inline code formatting with backticks.
 - Avoid bold formatting inside bullet points.
 - Use simple Markdown.

@@ -1,18 +1,32 @@
-import { runAgentLoop } from "./agent-loop.js";
-import { readTool } from "./tools/read.js";
-import { renderMarkdown } from "./utils/renderer.js";
-import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
+import readLine from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+import { Agent } from "./agent.js";
+import { availableTools } from "./tools/index.js";
+import renderMarkdown from "./utils/renderer.js";
 
-const context = {
-  systemPrompt: SYSTEM_PROMPT,
-  messages: [],
-  tools: [readTool],
-};
-
-const result = await runAgentLoop(
-  "gemini-3.5-flash-lite",
-  ["Read file tsconfig.json and provide a summary of what it does in this project. After that do same for ./src/index.ts file."],
-  context,
+const rl = readLine.createInterface({ input, output });
+const firstMessage = await rl.question(
+  "\n\n => \x1b[32mHow can i help you today?\x1b[0m \n\n> ",
 );
+const agent = new Agent("gemini-3.1-flash-lite", {
+  messages: [{ role: "user", content: firstMessage, timestamp: Date.now() }],
+  tools: availableTools,
+});
 
-process.stdout.write(renderMarkdown(result));
+const response = await agent.prompt([firstMessage]);
+
+rl.write(`\n\n> ${renderMarkdown(response)}\n\n `);
+
+while (true) {
+  const userInput = await rl.question("> ");
+
+  if (userInput === "/exit") {
+    break;
+  }
+
+  const response = await agent.prompt([userInput]);
+
+  rl.write(`\n\n> ${renderMarkdown(response)}\n\n `);
+}
+
+rl.close();

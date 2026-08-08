@@ -39,10 +39,17 @@ export class Agent {
   }
 
   async prompt(newMessages: string[]) {
-    return runAgentLoop(this.model, newMessages, {
-      systemPrompt: SYSTEM_PROMPT,
-      messages: this.messages,
-      tools: this.tools,
-    });
+    const response = await runAgentLoop(
+      this.model,
+      this.messages,
+      newMessages,
+      {
+        systemPrompt: SYSTEM_PROMPT,
+        messages: this.messages,
+        tools: this.tools,
+      },
+    );
+    this.messages = response.messages;
+    return response.finalResponse;
   }
 }

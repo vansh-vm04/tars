@@ -53,3 +53,8 @@ export interface ToolCall {
 	arguments: Record<string, any>;
 	thoughtSignature?: string; 
 }
+
+export interface AgentConfig {
+  messages?: AgentMessage[];
+  tools?: Tool[];
+}

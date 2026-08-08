@@ -1,9 +1,22 @@
-import { GoogleGenAI, Type, type Content, type FunctionCall, type GenerateContentParameters, type Part, type Tool, type GenerateContentResponse } from "@google/genai";
+import {
+  GoogleGenAI,
+  Type,
+  type Content,
+  type FunctionCall,
+  type GenerateContentParameters,
+  type Part,
+  type Tool,
+  type GenerateContentResponse,
+} from "@google/genai";
 import type { LLMInput, AgentMessage } from "../types.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY ?? "" });
 
-export const geminiChat = async (input: LLMInput) => {
+export const geminiChat = async (
+  input: LLMInput,
+): Promise<{ content: ParsedResponse; interaction: GenerateContentResponse } | undefined> => {
   if (!input.messages.length) return;
 
   const tools: Tool[] = input.tools.map((tool) => ({
@@ -25,12 +38,15 @@ export const geminiChat = async (input: LLMInput) => {
     config: {
       systemInstruction: input.systemPrompt,
       ...(tools.length && { tools }),
+      thinkingConfig: {
+        includeThoughts: true,
+      },
     },
   };
 
   const interaction = await ai.models.generateContent(params);
 
-  return parseGeminiResponse(interaction);
+  return { content: parseGeminiResponse(interaction), interaction };
 };
 
 const buildContents = (messages: AgentMessage[]): Content[] =>
@@ -45,17 +61,7 @@ const buildContents = (messages: AgentMessage[]): Content[] =>
       case "assistant":
         return {
           role: "model",
-          parts: message.content.map((item): Part =>
-            typeof item === "string"
-              ? { text: item }
-              : {
-                  functionCall: {
-                    name: item.name,
-                    args: item.arguments,
-                    id: item.id,
-                  } as FunctionCall,
-                },
-          ),
+          parts: [message.content.candidates?.[0]?.content?.parts?.[0] ?? { text: "" }],
         };
 
       case "toolResult":
@@ -76,15 +82,19 @@ const buildContents = (messages: AgentMessage[]): Content[] =>
 
 export interface ParsedResponse {
   text: string;
-  toolCalls: { name: string; args: Record<string, unknown>; id?: string | undefined }[];
+  toolCalls: {
+    name: string;
+    args: Record<string, unknown>;
+    id?: string | undefined;
+  }[];
 }
 
-const parseGeminiResponse = (response: GenerateContentResponse): ParsedResponse => {
+const parseGeminiResponse = (
+  response: GenerateContentResponse,
+): ParsedResponse => {
   const parts = response.candidates?.[0]?.content?.parts ?? [];
 
-  const text = parts
-    .map((part) => part.text ?? "")
-    .join("");
+  const text = parts.map((part) => part.text ?? "").join("");
 
   const toolCalls = parts
     .filter((part) => part.functionCall)

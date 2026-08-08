@@ -1,9 +1,10 @@
-import type { Content, Schema } from "@google/genai";
+import type { Content, Schema, GenerateContentResponse } from "@google/genai";
 
 export interface Tool {
     name: string;
     description: string;
     parameters: Record<string, Schema>;
+	execute: (args: Record<string, any>) => Promise<any>;
 }
 
 export interface chatInput {
@@ -15,7 +16,7 @@ export interface chatInput {
 export interface Context {
     systemPrompt: string;
 	messages: AgentMessage[];
-	tools?: AgentTool<any>[];
+	tools?: Tool[];
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
@@ -34,7 +35,8 @@ export interface UserMessage {
 
 export interface AssistantMessage {
 	role: "assistant";
-	content: (string | ToolCall)[];
+	content: GenerateContentResponse;
+	toolCalls?: ToolCall[];
 }
 
 export interface ToolResultMessage<TDetails = any> {

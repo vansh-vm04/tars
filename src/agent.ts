@@ -38,8 +38,8 @@ export class Agent {
     this.model = model;
   }
 
-  async prompt(input: chatInput) {
-    return runAgentLoop(this.model, input, {
+  async prompt(newMessages: string[]) {
+    return runAgentLoop(this.model, newMessages, {
       systemPrompt: SYSTEM_PROMPT,
       messages: this.messages,
       tools: this.tools,

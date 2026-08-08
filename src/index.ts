@@ -3,10 +3,16 @@ import { stdin as input, stdout as output } from "node:process";
 import { Agent } from "./agent.js";
 import { availableTools } from "./tools/index.js";
 import renderMarkdown from "./utils/renderer.js";
+import { showBanner, startAnimation } from "./utils/agent-banner.js";
+import chalk from "chalk";
 
 const rl = readLine.createInterface({ input, output });
+
+await startAnimation();
+showBanner();
+
 const firstMessage = await rl.question(
-  "\n\n => \x1b[32mHow can i help you today?\x1b[0m \n\n> ",
+  chalk.yellowBright("\n\n => How can i help you today? \n\n> "),
 );
 const agent = new Agent("gemini-3.1-flash-lite", {
   messages: [{ role: "user", content: firstMessage, timestamp: Date.now() }],

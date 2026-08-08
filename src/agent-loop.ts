@@ -44,7 +44,15 @@ export const runAgentLoop = async (
       for (const toolCall of toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
-          throw new Error(`Tool ${toolCall.name} not found`);
+          messages.push({
+            role: "toolResult",
+            toolCallId: toolCall.id || "",
+            toolName: toolCall.name,
+            content: [`Tool "${toolCall.name}" not found.`],
+            isError: true,
+            timestamp: Date.now(),
+          });
+          continue;
         }
         const toolCallId = toolCall.id || `${tool.name}-${Date.now()}`;
         let result: string[];
@@ -75,5 +83,8 @@ export const runAgentLoop = async (
     }
   }
 
-  return (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return (
+    (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content
+      ?.parts?.[0]?.text || ""
+  );
 };

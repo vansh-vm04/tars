@@ -1,9 +1,10 @@
 import { geminiChat } from "./providers/google-provider.js";
-import type { chatInput } from "./types.js";
+import type { chatInput, LLMInput } from "./types.js";
 
-export const chat = async (input: chatInput, model: string) => {
+export const chat = async (input: LLMInput) => {
     if (input) {
-        const response = await geminiChat(input, model);
+        const response = await geminiChat(input);
         return response;
     }
+    return null;
 }

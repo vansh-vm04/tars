@@ -1,10 +1,10 @@
-import { GoogleGenAI, Type, type GenerateContentParameters, type Tool, type GenerateContentResponse } from "@google/genai";
-import type { chatInput } from "../types.js";
+import { GoogleGenAI, Type, type Content, type FunctionCall, type GenerateContentParameters, type Part, type Tool, type GenerateContentResponse } from "@google/genai";
+import type { LLMInput, AgentMessage } from "../types.js";
 
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY ?? "" });
 
-export const geminiChat = async (input: chatInput, model: string) => {
-  if (!input.contents.length) return;
+export const geminiChat = async (input: LLMInput) => {
+  if (!input.messages.length) return;
 
   const tools: Tool[] = input.tools.map((tool) => ({
     functionDeclarations: [
@@ -20,8 +20,8 @@ export const geminiChat = async (input: chatInput, model: string) => {
   }));
 
   const params: GenerateContentParameters = {
-    model,
-    contents: input.contents,
+    model: input.model,
+    contents: buildContents(input.messages),
     config: {
       systemInstruction: input.systemPrompt,
       ...(tools.length && { tools }),
@@ -32,6 +32,47 @@ export const geminiChat = async (input: chatInput, model: string) => {
 
   return parseGeminiResponse(interaction);
 };
+
+const buildContents = (messages: AgentMessage[]): Content[] =>
+  messages.map((message) => {
+    switch (message.role) {
+      case "user":
+        return {
+          role: "user",
+          parts: [{ text: message.content }],
+        };
+
+      case "assistant":
+        return {
+          role: "model",
+          parts: message.content.map((item): Part =>
+            typeof item === "string"
+              ? { text: item }
+              : {
+                  functionCall: {
+                    name: item.name,
+                    args: item.arguments,
+                    id: item.id,
+                  } as FunctionCall,
+                },
+          ),
+        };
+
+      case "toolResult":
+        return {
+          role: "user",
+          parts: [
+            {
+              functionResponse: {
+                name: message.toolName,
+                id: message.toolCallId,
+                response: { output: message.content.join("\n") },
+              },
+            },
+          ],
+        };
+    }
+  });
 
 export interface ParsedResponse {
   text: string;

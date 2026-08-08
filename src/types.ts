@@ -58,3 +58,10 @@ export interface AgentConfig {
   messages?: AgentMessage[];
   tools?: Tool[];
 }
+
+export type LLMInput = {
+  model: string;
+  systemPrompt: string;
+  messages: AgentMessage[];
+  tools: Tool[];
+};

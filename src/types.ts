@@ -1,59 +1,53 @@
 import type { Content, Schema, GenerateContentResponse } from "@google/genai";
 
 export interface Tool {
-    name: string;
-    description: string;
-    parameters: Record<string, Schema>;
-	execute: (args: Record<string, any>) => Promise<any>;
-}
-
-export interface chatInput {
-    systemPrompt: string;
-    contents: Content[];
-    tools: Tool[];
+  name: string;
+  description: string;
+  parameters: Record<string, Schema>;
+  execute: (args: Record<string, any>) => Promise<ToolExecutionResult>;
 }
 
 export interface Context {
-    systemPrompt: string;
-	messages: AgentMessage[];
-	tools?: Tool[];
+  systemPrompt: string;
+  messages: AgentMessage[];
+  tools?: Tool[];
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
 
 export interface AgentTool<T extends Record<string, unknown>> {
-    name: string;
-    description: string;
-    parameters: T;
+  name: string;
+  description: string;
+  parameters: T;
 }
 
 export interface UserMessage {
-	role: "user";
-	content: string
-	timestamp: number; 
+  role: "user";
+  content: string;
+  timestamp: number;
 }
 
 export interface AssistantMessage {
-	role: "assistant";
-	content: GenerateContentResponse;
-	toolCalls?: ToolCall[];
+  role: "assistant";
+  content: GenerateContentResponse;
+  toolCalls?: ToolCall[];
 }
 
 export interface ToolResultMessage<TDetails = any> {
-	role: "toolResult";
-	toolCallId: string;
-	toolName: string;
-	content: string[]; 
-	isError: boolean;
-	timestamp: number; // Unix timestamp in milliseconds
+  role: "toolResult";
+  toolCallId: string;
+  toolName: string;
+  content: string[];
+  isError: boolean;
+  timestamp: number; // Unix timestamp in milliseconds
 }
 
 export interface ToolCall {
-	type: "toolCall";
-	id: string;
-	name: string;
-	arguments: Record<string, any>;
-	thoughtSignature?: string; 
+  type: "toolCall";
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+  thoughtSignature?: string;
 }
 
 export interface AgentConfig {
@@ -66,4 +60,14 @@ export type LLMInput = {
   systemPrompt: string;
   messages: AgentMessage[];
   tools: Tool[];
+};
+
+export type BashCommandOutput = {
+  stdout: string;
+  isError: boolean;
+};
+
+export type ToolExecutionResult = {
+  content: string[];
+  isError: boolean;
 };

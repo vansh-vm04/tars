@@ -3,7 +3,6 @@ import {
   type AgentMessage,
   type Tool,
   type AgentConfig,
-  type chatInput,
 } from "./types.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
 

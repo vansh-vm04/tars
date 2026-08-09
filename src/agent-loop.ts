@@ -1,5 +1,10 @@
 import { callLLM } from "./llm.js";
-import type { AgentMessage, AssistantMessage, Context } from "./types.js";
+import type {
+  AgentMessage,
+  AssistantMessage,
+  Context,
+  ToolExecutionResult,
+} from "./types.js";
 import type { GenerateContentResponse } from "@google/genai";
 
 export const runAgentLoop = async (
@@ -56,21 +61,23 @@ export const runAgentLoop = async (
           continue;
         }
         const toolCallId = toolCall.id || `${tool.name}-${Date.now()}`;
-        let result: string[];
-        let isError = false;
+        let result: ToolExecutionResult;
         try {
-          const raw = await tool.execute(toolCall.args);
-          result = [typeof raw === "string" ? raw : JSON.stringify(raw)];
+          result = await tool.execute(toolCall.args);
         } catch (err) {
-          result = [(err as Error).message];
-          isError = true;
+          result = {
+            content: [
+              `Error executing tool "${toolCall.name}": ${(err as Error).message}`,
+            ],
+            isError: true,
+          };
         }
         messages.push({
           role: "toolResult",
           toolCallId: toolCallId,
           toolName: tool.name,
-          content: result,
-          isError,
+          content: result.content,
+          isError: result.isError,
           timestamp: Date.now(),
         });
       }

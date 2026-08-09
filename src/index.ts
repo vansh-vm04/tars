@@ -7,6 +7,7 @@ import { showBanner, startAnimation } from "./utils/agent-banner.js";
 import chalk from "chalk";
 import { loadAuth } from "./storage/auth.js";
 import { GoogleProvider } from "./providers/google-provider.js";
+import { loadConfig } from "./storage/config.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -14,11 +15,12 @@ await startAnimation();
 showBanner();
 
 const auth = await loadAuth(rl);
+const config = await loadConfig(rl);
 
 const provider = new GoogleProvider(auth.apiKey);
 
 const agent = new Agent(
-  "gemini-3.1-flash-lite",
+  config.model,
   {
     messages: [],
     tools: availableTools,

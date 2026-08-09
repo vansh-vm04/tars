@@ -1,4 +1,4 @@
-import type { Content, Schema, GenerateContentResponse } from "@google/genai";
+import type { Schema, GenerateContentResponse } from "@google/genai";
 
 export interface Tool {
   name: string;
@@ -84,4 +84,9 @@ export interface ParsedResponse {
     args: Record<string, unknown>;
     id?: string | undefined;
   }[];
+}
+
+export interface Config {
+  provider: string;
+  model: string;
 }

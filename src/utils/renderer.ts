@@ -21,5 +21,10 @@ marked.use(
 );
 
 export default function renderMarkdown(text: string): string {
-  return marked.parse(text) as string;
+  const normalized = normalizeMarkdown(text);
+  return marked.parse(normalized) as string;
+}
+
+function normalizeMarkdown(text: string): string {
+  return text.replace(/\\([*_`#])/g, "$1");
 }

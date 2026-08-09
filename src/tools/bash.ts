@@ -36,6 +36,12 @@ export const bashTool: Tool = {
     },
   },
   execute: async (args: Record<string, any>) => {
+    if (isDangerousCommand(args.command)) {
+      return {
+        content: ["Error: The requested command is not allowed."],
+        isError: true,
+      };
+    }
     const result = await runBashCommand(args.command);
     return {
       content: [result.stdout],
@@ -43,3 +49,16 @@ export const bashTool: Tool = {
     };
   },
 };
+
+const BLOCKED_PATTERNS = [
+  /\brm\s+(-rf?|--recursive)\b/i,
+  /\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f|push|commit)\b/i,
+  /\bmkfs\b/i,
+  /\bdd\s+if=/i,
+  /\bshutdown\b/i,
+  /\breboot\b/i,
+];
+
+function isDangerousCommand(command: string): boolean {
+  return BLOCKED_PATTERNS.some((pattern) => pattern.test(command));
+}

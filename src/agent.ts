@@ -1,20 +1,19 @@
 import { runAgentLoop } from "./agent-loop.js";
-import {
-  type AgentMessage,
-  type Tool,
-  type AgentConfig,
-} from "./types.js";
+import type { GoogleProvider } from "./providers/google-provider.js";
+import { type AgentMessage, type Tool, type AgentConfig } from "./types.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
 
 export class Agent {
   private tools: Tool[];
   private messages: AgentMessage[];
   private model: string;
+  private provider: GoogleProvider;
 
-  constructor(model: string, config: AgentConfig) {
+  constructor(model: string, config: AgentConfig, provider: GoogleProvider) {
     this.messages = config.messages || [];
     this.tools = config.tools || [];
     this.model = model;
+    this.provider = provider;
   }
 
   get toolsList(): Tool[] {
@@ -40,6 +39,7 @@ export class Agent {
   async prompt(newMessages: string[]) {
     const response = await runAgentLoop(
       this.model,
+      this.provider,
       this.messages,
       newMessages,
       {

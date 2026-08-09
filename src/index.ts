@@ -5,19 +5,30 @@ import { availableTools } from "./tools/index.js";
 import renderMarkdown from "./utils/renderer.js";
 import { showBanner, startAnimation } from "./utils/agent-banner.js";
 import chalk from "chalk";
+import { loadAuth } from "./storage/auth.js";
+import { GoogleProvider } from "./providers/google-provider.js";
 
 const rl = readLine.createInterface({ input, output });
 
 await startAnimation();
 showBanner();
 
+const auth = await loadAuth(rl);
+
+const provider = new GoogleProvider(auth.apiKey);
+
+const agent = new Agent(
+  "gemini-3.1-flash-lite",
+  {
+    messages: [],
+    tools: availableTools,
+  },
+  provider,
+);
+
 const firstMessage = await rl.question(
   chalk.yellowBright("\n\n => How can i help you today? \n\n> "),
 );
-const agent = new Agent("gemini-3.1-flash-lite", {
-  messages: [{ role: "user", content: firstMessage, timestamp: Date.now() }],
-  tools: availableTools,
-});
 
 const response = await agent.prompt([firstMessage]);
 

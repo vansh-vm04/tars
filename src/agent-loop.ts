@@ -1,4 +1,5 @@
 import { callLLM } from "./llm.js";
+import type { GoogleProvider } from "./providers/google-provider.js";
 import type {
   AgentMessage,
   AssistantMessage,
@@ -9,6 +10,7 @@ import type { GenerateContentResponse } from "@google/genai";
 
 export const runAgentLoop = async (
   model: string,
+  provider: GoogleProvider,
   initialMessages: AgentMessage[],
   newMessages: string[],
   context: Context,
@@ -26,7 +28,7 @@ export const runAgentLoop = async (
   });
 
   while (true) {
-    const LLMResponse = await callLLM({
+    const LLMResponse = await callLLM(provider, {
       model,
       systemPrompt,
       messages,

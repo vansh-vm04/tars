@@ -71,3 +71,17 @@ export type ToolExecutionResult = {
   content: string[];
   isError: boolean;
 };
+
+export type AuthConfig = {
+  provider: string;
+  apiKey: string;
+};
+
+export interface ParsedResponse {
+  text: string;
+  toolCalls: {
+    name: string;
+    args: Record<string, unknown>;
+    id?: string | undefined;
+  }[];
+}

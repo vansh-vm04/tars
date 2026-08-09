@@ -1,4 +1,6 @@
 import type { Schema, GenerateContentResponse } from "@google/genai";
+import readLine from "node:readline/promises";
+import type { Agent } from "./agent.js";
 
 export interface Tool {
   name: string;
@@ -89,4 +91,10 @@ export interface ParsedResponse {
 export interface Config {
   provider: string;
   model: string;
+}
+
+export interface Command {
+  name: string;
+  description: string;
+  execute(rl: readLine.Interface, agent: Agent): Promise<void>;
 }

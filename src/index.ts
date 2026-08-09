@@ -8,6 +8,7 @@ import chalk from "chalk";
 import { loadAuth } from "./storage/auth.js";
 import { GoogleProvider } from "./providers/google-provider.js";
 import { loadConfig } from "./storage/config.js";
+import { availableCommands } from "./commands/index.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -28,24 +29,27 @@ const agent = new Agent(
   provider,
 );
 
-const firstMessage = await rl.question(
-  chalk.yellowBright("\n\n => How can i help you today? \n\n> "),
-);
-
-const response = await agent.prompt([firstMessage]);
-
-rl.write(`\n\n> ${renderMarkdown(response)}\n\n `);
+console.log(chalk.yellowBright("\n\n => How can i help you today? \n\n"));
 
 while (true) {
-  const userInput = await rl.question("> ");
+  const userInput = (await rl.question("> ")).trim();
 
-  if (userInput === "/exit") {
+  if (userInput.trim().startsWith("/")) {
+    const command = availableCommands.find(
+      (cmd) => cmd.name == userInput.trim(),
+    );
+
+    if (command) {
+      await command.execute(rl, agent);
+      continue;
+    }
+  } else if (userInput == "/exit") {
     break;
   }
 
   const response = await agent.prompt([userInput]);
 
-  rl.write(`\n\n> ${renderMarkdown(response)}\n\n `);
+  console.log(`\n\n> ${renderMarkdown(response)}\n\n `);
 }
 
 rl.close();

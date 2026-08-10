@@ -1,5 +1,10 @@
 import { runAgentLoop } from "./agent-loop.js";
-import { type AgentMessage, type Tool, type AgentConfig, type Provider } from "./types.js";
+import {
+  type AgentMessage,
+  type Tool,
+  type AgentConfig,
+  type Provider,
+} from "./types.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
 
 export class Agent {
@@ -35,7 +40,9 @@ export class Agent {
     this.model = model;
   }
 
-  async prompt(newMessages: string[]) {
+  async prompt(
+    newMessages: string[],
+  ): Promise<{ message: string; isError: boolean }> {
     const response = await runAgentLoop(
       this.model,
       this.provider,
@@ -48,6 +55,6 @@ export class Agent {
       },
     );
     this.messages = response.messages;
-    return response.finalResponse;
+    return { message: response.finalResponse || "", isError: response.isError };
   }
 }

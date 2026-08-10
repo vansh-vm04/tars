@@ -48,5 +48,13 @@ while (true) {
 
   const response = await agent.prompt([userInput]);
 
-  console.log(`\n\n> ${renderMarkdown(response)}\n\n `);
+  if (response.isError) {
+    console.log(chalk.redBright(`\n\n> ${response.message}\n\n `));
+    console.log(
+      `> Tip: You can change the model by entering ${chalk.yellowBright("/model")} command.\n\n`,
+    );
+    continue;
+  }
+
+  console.log(`\n\n> ${renderMarkdown(response.message)}\n\n `);
 }

@@ -6,7 +6,8 @@ import {
   type Tool,
   type GenerateContentResponse,
 } from "@google/genai";
-import type { LLMInput, AgentMessage, ParsedResponse } from "../types.js";
+import type { LLMInput, AgentMessage, ParsedResponse, GeminiChatResponse } from "../types.js";
+import { LLMError } from "../error.js";
 
 export class GoogleProvider {
   private ai: GoogleGenAI;
@@ -18,7 +19,7 @@ export class GoogleProvider {
   geminiChat = async (
     input: LLMInput,
   ): Promise<
-    | { content: ParsedResponse; interaction: GenerateContentResponse }
+    | GeminiChatResponse
     | undefined
   > => {
     if (!input.messages.length) return;
@@ -48,7 +49,23 @@ export class GoogleProvider {
       },
     };
 
-    const interaction = await this.ai.models.generateContent(params);
+    let interaction: GenerateContentResponse;
+
+    try {
+      interaction = await this.ai.models.generateContent(params);
+    } catch (error: any) {
+      if (error?.status === 429 || error?.code === 429) {
+        throw new LLMError(
+          "Gemini API quota exceeded. Please check your API quota or try another model.",
+          429,
+        );
+      }
+
+      throw new LLMError(
+        error?.message ?? "Gemini API request failed.",
+        error?.status ?? error?.code,
+      );
+    }
 
     return { content: this.parseGeminiResponse(interaction), interaction };
   };

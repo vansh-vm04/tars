@@ -100,4 +100,16 @@ export interface Command {
   execute(rl: readLine.Interface, agent: Agent): Promise<void>;
 }
 
+export interface LLMResponse {
+  content: ParsedResponse | null;
+  interaction: GenerateContentResponse | null;
+  isError: boolean;
+  error: string | null;
+}
+
+export interface GeminiChatResponse {
+  content: ParsedResponse | null;
+  interaction: GenerateContentResponse | null;
+}
+
 export type Provider = GoogleProvider;

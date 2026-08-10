@@ -35,8 +35,16 @@ export const runAgentLoop = async (
       tools,
     });
 
-    const toolCalls = LLMResponse?.content.toolCalls || [];
-    interaction = LLMResponse?.interaction;
+    if (LLMResponse.isError) {
+      return {
+        finalResponse: LLMResponse.error,
+        messages,
+        isError: true,
+      };
+    }
+
+    const toolCalls = LLMResponse?.content?.toolCalls || [];
+    interaction = LLMResponse?.interaction ?? undefined;
 
     if (toolCalls.length > 0) {
       messages.push({
@@ -98,5 +106,6 @@ export const runAgentLoop = async (
       (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content
         ?.parts?.[0]?.text || "",
     messages,
+    isError: false,
   };
 };

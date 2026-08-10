@@ -113,3 +113,17 @@ export interface GeminiChatResponse {
 }
 
 export type Provider = GoogleProvider;
+
+export interface Session {
+  id: number;
+  name: string;
+  cwd: string;
+  model: string;
+  createdAt: number;
+}
+
+export interface SessionConfig {
+  name: string;
+  cwd: string;
+  model: string;
+}

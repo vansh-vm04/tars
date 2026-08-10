@@ -9,6 +9,8 @@ import { loadAuth } from "./storage/auth.js";
 import { GoogleProvider } from "./providers/google-provider.js";
 import { loadConfig } from "./storage/config.js";
 import { availableCommands } from "./commands/index.js";
+import { SessionManager } from "./session-manager.js";
+import type { Session } from "./types.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -29,6 +31,10 @@ const agent = new Agent(
   provider,
 );
 
+const sessionManager = new SessionManager();
+let session: Session | undefined;
+let persistedMessageCount = 0;
+
 console.log(chalk.yellowBright("\n\n => How can i help you today? \n\n"));
 
 while (true) {
@@ -46,6 +52,18 @@ while (true) {
     }
   }
 
+  if (!session) {
+    session = await sessionManager.create(
+      provider,
+      {
+        name: "New Session",
+        cwd: process.cwd(),
+        model: config.model,
+      },
+      userInput,
+    );
+  }
+
   const response = await agent.prompt([userInput]);
 
   if (response.isError) {
@@ -55,6 +73,10 @@ while (true) {
     );
     continue;
   }
+
+  const newMessages = agent.messagesList.slice(persistedMessageCount);
+  await sessionManager.saveMessage(session.id.toString(), newMessages);
+  persistedMessageCount = agent.messagesList.length;
 
   console.log(`\n\n> ${renderMarkdown(response.message)}\n\n `);
 }

@@ -127,3 +127,8 @@ export interface SessionConfig {
   cwd: string;
   model: string;
 }
+
+export interface LoadedSession {
+  session: Session;
+  messages: AgentMessage[];
+}

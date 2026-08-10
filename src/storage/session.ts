@@ -1,11 +1,11 @@
-import type { AgentMessage, Session, SessionConfig } from "../types.js";
+import type {
+  AgentMessage,
+  Session,
+  SessionConfig,
+  LoadedSession,
+} from "../types.js";
 import { SESSIONS_DIR } from "./path.js";
-import { appendFile, readFile } from "node:fs/promises";
-
-export interface LoadedSession {
-  session: Session;
-  messages: AgentMessage[];
-}
+import { appendFile, mkdir, readFile } from "node:fs/promises";
 
 export const createSession = async (
   config: SessionConfig,
@@ -21,6 +21,8 @@ export const createSession = async (
   };
 
   const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
+
+  await mkdir(SESSIONS_DIR, { recursive: true });
 
   await appendFile(
     filePath,

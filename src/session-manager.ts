@@ -1,4 +1,9 @@
-import type { AgentMessage, Session, SessionConfig } from "./types.js";
+import type {
+  AgentMessage,
+  Provider,
+  Session,
+  SessionConfig,
+} from "./types.js";
 import {
   addMessageToSession,
   addSessionToList,
@@ -6,11 +11,16 @@ import {
   listSessions,
   loadSession,
 } from "./storage/session.js";
-import type { LoadedSession } from "./storage/session.js";
+import type { LoadedSession } from "./types.js";
 
 export class SessionManager {
-  async create(config: SessionConfig): Promise<Session> {
-    const session = await createSession(config);
+  async create(
+    provider: Provider,
+    config: SessionConfig,
+    firstMessage: string,
+  ): Promise<Session> {
+    const sessionName = await this.generateSessionName(provider, firstMessage);
+    const session = await createSession({ ...config, name: sessionName });
     await addSessionToList(session);
     return session;
   }
@@ -26,15 +36,16 @@ export class SessionManager {
     return session;
   }
 
-  async saveMessage(id: string, message: AgentMessage): Promise<void> {
+  async saveMessage(id: string, messages: AgentMessage[]): Promise<void> {
     const sessionId = this.parseSessionId(id);
     const sessions = await this.list();
 
     if (!sessions.find((s) => s.id === sessionId)) {
       throw new Error(`Session ${id} not found`);
     }
-
-    await addMessageToSession(sessionId, message);
+    for (const msg of messages) {
+      await addMessageToSession(sessionId, msg);
+    }
   }
 
   async list(): Promise<Session[]> {
@@ -49,5 +60,25 @@ export class SessionManager {
     }
 
     return sessionId;
+  }
+
+  private async generateSessionName(
+    provider: Provider,
+    message: string,
+  ): Promise<string> {
+    const response = await provider.geminiChat({
+      model: "gemini-3.1-flash-lite",
+      systemPrompt: "Generate a concise title for this conversation.",
+      messages: [
+        {
+          role: "user",
+          content: message,
+          timestamp: Date.now(),
+        },
+      ],
+      tools: [],
+    });
+
+    return response?.content?.text.trim() ?? `${message.substring(0, 20)}...`;
   }
 }

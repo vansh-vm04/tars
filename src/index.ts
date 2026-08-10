@@ -41,15 +41,12 @@ while (true) {
 
     if (command) {
       await command.execute(rl, agent);
+      if (command.name === "/exit") break;
       continue;
     }
-  } else if (userInput == "/exit") {
-    break;
   }
 
   const response = await agent.prompt([userInput]);
 
   console.log(`\n\n> ${renderMarkdown(response)}\n\n `);
 }
-
-rl.close();

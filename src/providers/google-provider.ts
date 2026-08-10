@@ -7,8 +7,6 @@ import {
   type GenerateContentResponse,
 } from "@google/genai";
 import type { LLMInput, AgentMessage, ParsedResponse } from "../types.js";
-import dotenv from "dotenv";
-dotenv.config();
 
 export class GoogleProvider {
   private ai: GoogleGenAI;

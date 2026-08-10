@@ -1,6 +1,7 @@
 import type { Schema, GenerateContentResponse } from "@google/genai";
 import readLine from "node:readline/promises";
 import type { Agent } from "./agent.js";
+import { GoogleProvider } from "./providers/google-provider.js";
 
 export interface Tool {
   name: string;
@@ -98,3 +99,5 @@ export interface Command {
   description: string;
   execute(rl: readLine.Interface, agent: Agent): Promise<void>;
 }
+
+export type Provider = GoogleProvider;

@@ -1,16 +1,16 @@
 import { callLLM } from "./llm.js";
-import type { GoogleProvider } from "./providers/google-provider.js";
 import type {
   AgentMessage,
   AssistantMessage,
   Context,
+  Provider,
   ToolExecutionResult,
 } from "./types.js";
 import type { GenerateContentResponse } from "@google/genai";
 
 export const runAgentLoop = async (
   model: string,
-  provider: GoogleProvider,
+  provider: Provider,
   initialMessages: AgentMessage[],
   newMessages: string[],
   context: Context,

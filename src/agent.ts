@@ -1,15 +1,14 @@
 import { runAgentLoop } from "./agent-loop.js";
-import type { GoogleProvider } from "./providers/google-provider.js";
-import { type AgentMessage, type Tool, type AgentConfig } from "./types.js";
+import { type AgentMessage, type Tool, type AgentConfig, type Provider } from "./types.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
 
 export class Agent {
   private tools: Tool[];
   private messages: AgentMessage[];
   private model: string;
-  private provider: GoogleProvider;
+  private provider: Provider;
 
-  constructor(model: string, config: AgentConfig, provider: GoogleProvider) {
+  constructor(model: string, config: AgentConfig, provider: Provider) {
     this.messages = config.messages || [];
     this.tools = config.tools || [];
     this.model = model;

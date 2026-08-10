@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
-    "dotenv": "^17.4.2",
     "figlet": "^1.11.4",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0"

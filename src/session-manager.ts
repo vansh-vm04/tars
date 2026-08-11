@@ -19,7 +19,7 @@ export class SessionManager {
     return this.session;
   }
 
-  set currentSession(session: Session) {
+  set currentSession(session: Session | undefined) {
     this.session = session;
   }
 

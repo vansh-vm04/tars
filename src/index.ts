@@ -50,6 +50,11 @@ while (true) {
     if (command) {
       await command.execute(rl, agent, sessionManager);
 
+      if (command.name === "/new") {
+        persistedMessagesCount = 0;
+        continue;
+      }
+
       if (command.name === "/exit") break;
       continue;
     }

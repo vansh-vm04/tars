@@ -10,6 +10,7 @@ import {
   createSession,
   addMessagesToSession,
   loadSession,
+  updateSessionModel,
 } from "./storage/session.js";
 
 export class SessionManager {
@@ -58,6 +59,12 @@ export class SessionManager {
       throw new Error("No active session");
     }
     await addMessagesToSession(this.session.id, messages);
+  }
+
+  async updateModel(model: string): Promise<void> {
+    if (this.session) {
+      await updateSessionModel(String(this.session.id), model);
+    }
   }
 
   private parseSessionId(id: string): number {

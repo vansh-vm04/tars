@@ -4,6 +4,7 @@ import { CONFIG_FILE, TARS_DIR } from "./path.js";
 import readLine from "node:readline/promises";
 import type { Config } from "../types.js";
 import { availableModels } from "../providers/index.js";
+import type { SessionManager } from "../session-manager.js";
 
 export async function loadConfig(rl: readLine.Interface): Promise<Config> {
   try {
@@ -18,7 +19,10 @@ export async function loadConfig(rl: readLine.Interface): Promise<Config> {
   }
 }
 
-export async function askUserForModel(rl: readLine.Interface): Promise<Config> {
+export const askUserForModel = async (
+  rl: readLine.Interface,
+  sessionManager?: SessionManager,
+): Promise<Config> => {
   while (true) {
     const input = await rl.question(
       chalk.greenBright(
@@ -38,12 +42,16 @@ export async function askUserForModel(rl: readLine.Interface): Promise<Config> {
 
       await saveConfig(config);
 
+      if (sessionManager && sessionManager.currentSession) {
+        await sessionManager.updateModel(config.model);
+      }
+
       return config;
     }
 
     rl.write(chalk.red("Invalid model selection. Try again.\n\n> "));
   }
-}
+};
 
 async function saveConfig(config: Config): Promise<void> {
   await mkdir(TARS_DIR, { recursive: true });

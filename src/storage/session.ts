@@ -5,7 +5,7 @@ import type {
   LoadedSession,
 } from "../types.js";
 import { SESSIONS_DIR } from "./path.js";
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 
 export const createSession = async (
   config: SessionConfig,
@@ -26,7 +26,7 @@ export const createSession = async (
 
   await appendFile(
     filePath,
-    JSON.stringify({ type: "session", ...session }, null, 2),
+    JSON.stringify({ type: "session", ...session }) + "\n",
     "utf8",
   );
 
@@ -36,7 +36,7 @@ export const createSession = async (
 export const addSessionToList = async (session: Session) => {
   const listFilePath = `${SESSIONS_DIR}/session_list.jsonl`;
 
-  await appendFile(listFilePath, JSON.stringify(session, null, 2), "utf8");
+  await appendFile(listFilePath, JSON.stringify(session) + "\n", "utf8");
 };
 
 export const addMessageToSession = async (
@@ -47,7 +47,7 @@ export const addMessageToSession = async (
 
   await appendFile(
     filePath,
-    JSON.stringify({ type: "message", ...message }, null, 2),
+    JSON.stringify({ type: "message", ...message }) + "\n",
     "utf8",
   );
 };
@@ -62,9 +62,15 @@ export const addMessagesToSession = async (
     return;
   }
 
-  const content = messages
-    .map((message) => JSON.stringify({ type: "message", ...message }, null, 2))
-    .join("\n");
+  const content =
+    messages
+      .map((message) =>
+        JSON.stringify({
+          type: "message",
+          ...message,
+        }),
+      )
+      .join("\n") + "\n";
 
   await appendFile(filePath, content, "utf8");
 };
@@ -109,6 +115,28 @@ export const listSessions = async (): Promise<Session[]> => {
   } catch {
     return [];
   }
+};
+
+export const updateSessionModel = async (sessionId: string, model: string) => {
+  const filePath = `${SESSIONS_DIR}/ses_${sessionId}.jsonl`;
+
+  const data = await readFile(filePath, "utf8");
+
+  const lines = data.split("\n");
+  const firstLine = lines[0]?.trim();
+
+  if (!firstLine) {
+    throw new Error(`Session ${sessionId} is missing metadata`);
+  }
+
+  const metadata = JSON.parse(firstLine);
+
+  metadata.model = model;
+  metadata.updatedAt = Date.now();
+
+  lines[0] = JSON.stringify(metadata);
+
+  await writeFile(filePath, lines.join("\n"), "utf8");
 };
 
 const parseJsonObjects = (data: string): unknown[] => {

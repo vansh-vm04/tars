@@ -10,7 +10,6 @@ import { GoogleProvider } from "./providers/google-provider.js";
 import { loadConfig } from "./storage/config.js";
 import { availableCommands } from "./commands/index.js";
 import { SessionManager } from "./session-manager.js";
-import type { Session } from "./types.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -32,8 +31,7 @@ const agent = new Agent(
 );
 
 const sessionManager = new SessionManager();
-let session: Session | undefined;
-let persistedMessageCount = 0;
+let persistedMessagesCount = 0;
 
 console.log(chalk.yellowBright("\n\n => How can i help you today? \n\n"));
 
@@ -52,18 +50,13 @@ while (true) {
     if (command) {
       await command.execute(rl, agent, sessionManager);
 
-      if (sessionManager.currentSession) {
-        session = sessionManager.currentSession;
-        persistedMessageCount = agent.messagesList.length;
-      }
-
       if (command.name === "/exit") break;
       continue;
     }
   }
 
-  if (!session) {
-    session = await sessionManager.create(
+  if (!sessionManager.currentSession) {
+    await sessionManager.create(
       provider,
       {
         name: "New Session",
@@ -72,7 +65,6 @@ while (true) {
       },
       userInput,
     );
-    sessionManager.currentSession = session;
   }
 
   const response = await agent.prompt([userInput]);
@@ -85,11 +77,9 @@ while (true) {
     continue;
   }
 
-  const newMessages = agent.messagesList.slice(persistedMessageCount);
-  await sessionManager.saveMessage(session.id.toString(), newMessages);
-  persistedMessageCount = agent.messagesList.length;
-
-  sessionManager.currentSession = session;
+  const newMessages = agent.messagesList.slice(persistedMessagesCount);
+  await sessionManager.saveMessage(newMessages);
+  persistedMessagesCount = agent.messagesList.length;
 
   console.log(`\n\n> ${renderMarkdown(response.message)}\n\n `);
 }

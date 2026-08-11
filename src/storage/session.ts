@@ -52,6 +52,23 @@ export const addMessageToSession = async (
   );
 };
 
+export const addMessagesToSession = async (
+  id: number,
+  messages: AgentMessage[],
+) => {
+  const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
+
+  if (messages.length === 0) {
+    return;
+  }
+
+  const content = messages
+    .map((message) => JSON.stringify({ type: "message", ...message }, null, 2))
+    .join("\n");
+
+  await appendFile(filePath, content, "utf8");
+};
+
 export const loadSession = async (
   id: number,
 ): Promise<LoadedSession | null> => {

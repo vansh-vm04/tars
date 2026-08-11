@@ -3,15 +3,14 @@ import type {
   Provider,
   Session,
   SessionConfig,
+  LoadedSession,
 } from "./types.js";
 import {
-  addMessageToSession,
   addSessionToList,
   createSession,
-  listSessions,
+  addMessagesToSession,
   loadSession,
 } from "./storage/session.js";
-import type { LoadedSession } from "./types.js";
 
 export class SessionManager {
   private session: Session | undefined;
@@ -23,7 +22,7 @@ export class SessionManager {
   set currentSession(session: Session) {
     this.session = session;
   }
-  
+
   async create(
     provider: Provider,
     config: SessionConfig,
@@ -36,6 +35,9 @@ export class SessionManager {
     const sessionName = await this.generateSessionName(provider, firstMessage);
     const session = await createSession({ ...config, name: sessionName });
     await addSessionToList(session);
+
+    this.session = session;
+
     return session;
   }
 
@@ -47,23 +49,15 @@ export class SessionManager {
       throw new Error(`Session ${id} not found`);
     }
 
+    this.session = session.session;
     return session;
   }
 
-  async saveMessage(id: string, messages: AgentMessage[]): Promise<void> {
-    const sessionId = this.parseSessionId(id);
-    const sessions = await this.list();
-
-    if (!sessions.find((s) => s.id === sessionId)) {
-      throw new Error(`Session ${id} not found`);
+  async saveMessage(messages: AgentMessage[]): Promise<void> {
+    if (!this.session) {
+      throw new Error("No active session");
     }
-    for (const msg of messages) {
-      await addMessageToSession(sessionId, msg);
-    }
-  }
-
-  async list(): Promise<Session[]> {
-    return listSessions();
+    await addMessagesToSession(this.session.id, messages);
   }
 
   private parseSessionId(id: string): number {

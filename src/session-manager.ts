@@ -74,7 +74,7 @@ export class SessionManager {
     provider: Provider,
     message: string,
   ): Promise<string> {
-    const response = await provider.geminiChat({
+    const response = await provider.chat({
       model: "gemini-3.1-flash-lite",
       systemPrompt: `
         Generate a short, plain-text title for this conversation.

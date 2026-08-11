@@ -6,7 +6,12 @@ import {
   type Tool,
   type GenerateContentResponse,
 } from "@google/genai";
-import type { LLMInput, AgentMessage, ParsedResponse, GeminiChatResponse } from "../types.js";
+import type {
+  LLMInput,
+  AgentMessage,
+  ParsedResponse,
+  GeminiChatResponse,
+} from "../types.js";
 import { LLMError } from "../error.js";
 
 export class GoogleProvider {
@@ -16,12 +21,9 @@ export class GoogleProvider {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  geminiChat = async (
+  chat = async (
     input: LLMInput,
-  ): Promise<
-    | GeminiChatResponse
-    | undefined
-  > => {
+  ): Promise<GeminiChatResponse | undefined> => {
     if (!input.messages.length) return;
 
     const tools: Tool[] = input.tools.map((tool) => ({
@@ -67,7 +69,7 @@ export class GoogleProvider {
       );
     }
 
-    return { content: this.parseGeminiResponse(interaction), interaction };
+    return { content: this.parseGeminiResponse(interaction), parts: interaction.candidates?.[0]?.content?.parts ?? null };
   };
 
   buildContents = (messages: AgentMessage[]): Content[] =>
@@ -81,12 +83,8 @@ export class GoogleProvider {
 
         case "assistant":
           return {
-            role: "model",
-            parts: [
-              message.content.candidates?.[0]?.content?.parts?.[0] ?? {
-                text: "",
-              },
-            ],
+            role: "assistant",
+            parts: message.content,
           };
 
         case "toolResult":
@@ -108,7 +106,10 @@ export class GoogleProvider {
   parseGeminiResponse = (response: GenerateContentResponse): ParsedResponse => {
     const parts = response.candidates?.[0]?.content?.parts ?? [];
 
-    const text = parts.map((part) => part.text ?? "").join("");
+    const text = parts
+      .filter((part) => !part.thought )
+      .map((part) => part.text ?? "")
+      .join("\n");
 
     const toolCalls = parts
       .filter((part) => part.functionCall)

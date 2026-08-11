@@ -1,4 +1,4 @@
-import type { Schema, GenerateContentResponse } from "@google/genai";
+import type { Schema, Part } from "@google/genai";
 import readLine from "node:readline/promises";
 import type { Agent } from "./agent.js";
 import { GoogleProvider } from "./providers/google-provider.js";
@@ -33,8 +33,7 @@ export interface UserMessage {
 
 export interface AssistantMessage {
   role: "assistant";
-  content: GenerateContentResponse;
-  toolCalls?: ToolCall[];
+  content: Content[];
 }
 
 export interface ToolResultMessage<TDetails = any> {
@@ -103,14 +102,14 @@ export interface Command {
 
 export interface LLMResponse {
   content: ParsedResponse | null;
-  interaction: GenerateContentResponse | null;
+  parts: Content[] | null;
   isError: boolean;
   error: string | null;
 }
 
 export interface GeminiChatResponse {
   content: ParsedResponse | null;
-  interaction: GenerateContentResponse | null;
+  parts: Content[] | null;
 }
 
 export type Provider = GoogleProvider;
@@ -133,3 +132,5 @@ export interface LoadedSession {
   session: Session;
   messages: AgentMessage[];
 }
+
+export type Content = Part;

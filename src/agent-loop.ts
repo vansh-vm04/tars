@@ -1,12 +1,12 @@
 import { callLLM } from "./llm.js";
 import type {
   AgentMessage,
-  AssistantMessage,
+  Content,
   Context,
+  LLMResponse,
   Provider,
   ToolExecutionResult,
 } from "./types.js";
-import type { GenerateContentResponse } from "@google/genai";
 
 export const runAgentLoop = async (
   model: string,
@@ -18,7 +18,8 @@ export const runAgentLoop = async (
   let messages: AgentMessage[] = initialMessages;
   let tools = context.tools || [];
   let systemPrompt = context.systemPrompt;
-  let interaction: GenerateContentResponse | undefined;
+  let parts: Content[] | undefined;
+  let LLMResponse: LLMResponse | undefined;
 
   // Add the initial user message to the messages array
   messages.push({
@@ -28,7 +29,7 @@ export const runAgentLoop = async (
   });
 
   while (true) {
-    const LLMResponse = await callLLM(provider, {
+    LLMResponse = await callLLM(provider, {
       model,
       systemPrompt,
       messages,
@@ -44,18 +45,12 @@ export const runAgentLoop = async (
     }
 
     const toolCalls = LLMResponse?.content?.toolCalls || [];
-    interaction = LLMResponse?.interaction ?? undefined;
+    parts = LLMResponse?.parts ?? undefined;
 
     if (toolCalls.length > 0) {
       messages.push({
         role: "assistant",
-        content: interaction!,
-        toolCalls: toolCalls.map((toolCall) => ({
-          type: "toolCall",
-          id: toolCall.id || "",
-          name: toolCall.name,
-          arguments: toolCall.args,
-        })),
+        content: parts!,
       });
       for (const toolCall of toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
@@ -95,16 +90,14 @@ export const runAgentLoop = async (
       // no tool calls, return the response
       messages.push({
         role: "assistant",
-        content: interaction!,
+        content: parts!,
       });
       break;
     }
   }
 
   return {
-    finalResponse:
-      (messages.at(-1) as AssistantMessage)?.content.candidates?.[0]?.content
-        ?.parts?.[0]?.text || "",
+    finalResponse: LLMResponse?.content?.text || "",
     messages,
     isError: false,
   };

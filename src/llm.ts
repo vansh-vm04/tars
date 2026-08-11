@@ -12,17 +12,17 @@ export const callLLM = async (
 ): Promise<LLMResponse> => {
   try {
     const response: GeminiChatResponse | undefined =
-      await provider.geminiChat(input);
+      await provider.chat(input);
     return {
       content: response?.content ?? null,
-      interaction: response?.interaction ?? null,
+      parts: response?.parts ?? null,
       isError: false,
       error: null,
     };
   } catch (error) {
     return {
       content: null,
-      interaction: null,
+      parts: null,
       isError: true,
       error: (error as LLMError).message || "An unknown error occurred.",
     };

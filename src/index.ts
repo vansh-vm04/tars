@@ -46,7 +46,13 @@ while (true) {
     );
 
     if (command) {
-      await command.execute(rl, agent);
+      await command.execute(rl, agent, sessionManager);
+
+      if (sessionManager.currentSession) {
+        session = sessionManager.currentSession;
+        persistedMessageCount = agent.messagesList.length;
+      }
+
       if (command.name === "/exit") break;
       continue;
     }
@@ -62,6 +68,7 @@ while (true) {
       },
       userInput,
     );
+    sessionManager.currentSession = session;
   }
 
   const response = await agent.prompt([userInput]);
@@ -77,6 +84,8 @@ while (true) {
   const newMessages = agent.messagesList.slice(persistedMessageCount);
   await sessionManager.saveMessage(session.id.toString(), newMessages);
   persistedMessageCount = agent.messagesList.length;
+
+  sessionManager.currentSession = session;
 
   console.log(`\n\n> ${renderMarkdown(response.message)}\n\n `);
 }

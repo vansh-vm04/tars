@@ -14,6 +14,15 @@ import {
 import type { LoadedSession } from "./types.js";
 
 export class SessionManager {
+  private session: Session | undefined;
+
+  get currentSession(): Session | undefined {
+    return this.session;
+  }
+
+  set currentSession(session: Session) {
+    this.session = session;
+  }
   async create(
     provider: Provider,
     config: SessionConfig,

@@ -2,6 +2,7 @@ import type { Schema, GenerateContentResponse } from "@google/genai";
 import readLine from "node:readline/promises";
 import type { Agent } from "./agent.js";
 import { GoogleProvider } from "./providers/google-provider.js";
+import type { SessionManager } from "./session-manager.js";
 
 export interface Tool {
   name: string;
@@ -97,7 +98,7 @@ export interface Config {
 export interface Command {
   name: string;
   description: string;
-  execute(rl: readLine.Interface, agent: Agent): Promise<void>;
+  execute(rl: readLine.Interface, agent: Agent, sessionManager?: SessionManager): Promise<void>;
 }
 
 export interface LLMResponse {

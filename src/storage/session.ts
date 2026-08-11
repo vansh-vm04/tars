@@ -81,7 +81,12 @@ export const loadSession = async (
 export const listSessions = async (): Promise<Session[]> => {
   try {
     const data = await readFile(`${SESSIONS_DIR}/session_list.jsonl`, "utf8");
-    const sessions = parseJsonObjects(data) as Session[];
+    const sessions = parseJsonObjects(data)
+      .filter(isSessionEntry)
+      .map((entry) => {
+        const { type: _type, ...session } = entry;
+        return session;
+      });
 
     return sessions.sort((a, b) => b.createdAt - a.createdAt);
   } catch {

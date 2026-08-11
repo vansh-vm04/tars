@@ -40,6 +40,10 @@ console.log(chalk.yellowBright("\n\n => How can i help you today? \n\n"));
 while (true) {
   const userInput = (await rl.question("> ")).trim();
 
+  if (!userInput) {
+    continue;
+  }
+
   if (userInput.trim().startsWith("/")) {
     const command = availableCommands.find(
       (cmd) => cmd.name == userInput.trim(),

@@ -23,11 +23,16 @@ export class SessionManager {
   set currentSession(session: Session) {
     this.session = session;
   }
+  
   async create(
     provider: Provider,
     config: SessionConfig,
     firstMessage: string,
   ): Promise<Session> {
+    if (!firstMessage.trim()) {
+      throw new Error("Cannot create a session from empty input");
+    }
+
     const sessionName = await this.generateSessionName(provider, firstMessage);
     const session = await createSession({ ...config, name: sessionName });
     await addSessionToList(session);
@@ -77,7 +82,20 @@ export class SessionManager {
   ): Promise<string> {
     const response = await provider.geminiChat({
       model: "gemini-3.1-flash-lite",
-      systemPrompt: "Generate a concise title for this conversation.",
+      systemPrompt: `
+        Generate a short, plain-text title for this conversation.
+
+        Rules:
+        - Return only the title.
+        - Do not use Markdown.
+        - Do not use quotes.
+        - Do not use backticks.
+        - Do not use emojis.
+        - Do not add punctuation at the end.
+        - Do not explain the title.
+        - Keep it between 2 and 6 words.
+        - Describe the main task or topic of the user's message.
+        `,
       messages: [
         {
           role: "user",
@@ -88,6 +106,13 @@ export class SessionManager {
       tools: [],
     });
 
-    return response?.content?.text.trim() ?? `${message.substring(0, 20)}...`;
+    const title = response?.content?.text
+      .trim()
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/[*_#]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return title || message.substring(0, 40).trim();
   }
 }

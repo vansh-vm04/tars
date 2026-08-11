@@ -18,7 +18,7 @@ export async function loadConfig(rl: readLine.Interface): Promise<Config> {
   }
 }
 
-async function askUserForModel(rl: readLine.Interface): Promise<Config> {
+export async function askUserForModel(rl: readLine.Interface): Promise<Config> {
   while (true) {
     const input = await rl.question(
       chalk.greenBright(

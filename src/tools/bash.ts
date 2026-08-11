@@ -19,7 +19,10 @@ async function runBashCommand(command: string): Promise<BashCommandOutput> {
       isError: false,
     };
   } catch (error) {
-    throw new Error(`Error executing command "${command}": ${error}`);
+    return {
+      stdout: `Error executing command "${command}": ${error}`,
+      isError: true,
+    };
   }
 }
 

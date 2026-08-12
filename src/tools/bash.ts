@@ -7,7 +7,11 @@ const execAsync = promisify(exec);
 
 async function runBashCommand(command: string): Promise<BashCommandOutput> {
   try {
-    const { stdout, stderr } = await execAsync(command);
+    const { stdout, stderr } = await execAsync(command, {
+      cwd: process.cwd(),
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    
     if (stderr) {
       return {
         stdout: stderr.trim(),

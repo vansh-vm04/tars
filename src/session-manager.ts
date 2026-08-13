@@ -100,7 +100,7 @@ export class SessionManager {
       messages: [
         {
           role: "user",
-          content: message,
+          content: [{ type: "text", text: message }],
           timestamp: Date.now(),
         },
       ],

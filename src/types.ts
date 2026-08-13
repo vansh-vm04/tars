@@ -19,6 +19,19 @@ export interface Context {
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
 
+export type MessageContent = TextContent | ThinkingContent | ToolCall;
+
+export interface TextContent {
+	type: "text";
+	text: string;
+}
+
+export interface ThinkingContent {
+	type: "thinking";
+	thinking: string;
+	thinkingSignature?: string;
+}
+
 export interface AgentTool<T extends Record<string, unknown>> {
   name: string;
   description: string;
@@ -27,13 +40,13 @@ export interface AgentTool<T extends Record<string, unknown>> {
 
 export interface UserMessage {
   role: "user";
-  content: string;
+  content: TextContent[];
   timestamp: number;
 }
 
 export interface AssistantMessage {
   role: "assistant";
-  content: Content[];
+  content: MessageContent[];
 }
 
 export interface ToolResultMessage<TDetails = any> {
@@ -102,14 +115,14 @@ export interface Command {
 
 export interface LLMResponse {
   content: ParsedResponse | null;
-  parts: Content[] | null;
+  parts: MessageContent[] | null;
   isError: boolean;
   error: string | null;
 }
 
 export interface GeminiChatResponse {
   content: ParsedResponse | null;
-  parts: Content[] | null;
+  parts: MessageContent[] | null;
 }
 
 export type Provider = GoogleProvider;
@@ -133,4 +146,4 @@ export interface LoadedSession {
   messages: AgentMessage[];
 }
 
-export type Content = Part;
+export type Content = Part; // Gemini specific parts response

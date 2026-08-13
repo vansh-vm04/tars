@@ -1,7 +1,6 @@
 import { callLLM } from "./llm.js";
 import type {
   AgentMessage,
-  Content,
   Context,
   LLMResponse,
   Provider,
@@ -18,13 +17,12 @@ export const runAgentLoop = async (
   let messages: AgentMessage[] = initialMessages;
   let tools = context.tools || [];
   let systemPrompt = context.systemPrompt;
-  let parts: Content[] | undefined;
   let LLMResponse: LLMResponse | undefined;
 
   // Add the initial user message to the messages array
   messages.push({
     role: "user",
-    content: newMessages.join("\n"),
+    content: [{ type: "text", text: newMessages.join("\n") }],
     timestamp: Date.now(),
   });
 
@@ -45,12 +43,11 @@ export const runAgentLoop = async (
     }
 
     const toolCalls = LLMResponse?.content?.toolCalls || [];
-    parts = LLMResponse?.parts ?? undefined;
 
     if (toolCalls.length > 0) {
       messages.push({
         role: "assistant",
-        content: parts!,
+        content: LLMResponse?.parts ?? [],
       });
       for (const toolCall of toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
@@ -90,7 +87,7 @@ export const runAgentLoop = async (
       // no tool calls, return the response
       messages.push({
         role: "assistant",
-        content: parts!,
+        content: LLMResponse?.parts ?? [],
       });
       break;
     }

@@ -3,6 +3,7 @@ import {
   Type,
   type Content,
   type GenerateContentParameters,
+  type Part,
   type Tool,
   type GenerateContentResponse,
 } from "@google/genai";
@@ -11,8 +12,99 @@ import type {
   AgentMessage,
   ParsedResponse,
   GeminiChatResponse,
+  MessageContent,
+  TextContent,
+  ThinkingContent,
+  ToolCall,
 } from "../types.js";
 import { LLMError } from "../error.js";
+
+const normalizeMessageContent = (parts: Part[] | null | undefined): MessageContent[] =>
+  (parts ?? [])
+    .filter(
+      (part) =>
+        part.text !== undefined ||
+        part.thought === true ||
+        part.functionCall !== undefined,
+    )
+    .map((part): MessageContent => {
+      if (part.thought === true) {
+        const base: ThinkingContent = {
+          type: "thinking",
+          thinking: part.text ?? "",
+        };
+
+        if (part.thoughtSignature !== undefined) {
+          base.thinkingSignature = part.thoughtSignature;
+        }
+
+        return base;
+      }
+
+      if (part.functionCall) {
+        const toolCall: ToolCall = {
+          type: "toolCall",
+          id: part.functionCall.id ?? `${part.functionCall.name}-${Date.now()}`,
+          name: part.functionCall.name ?? "",
+          arguments: (part.functionCall.args ?? {}) as Record<string, any>,
+        };
+
+        if (part.thoughtSignature !== undefined) {
+          toolCall.thoughtSignature = part.thoughtSignature;
+        }
+
+        return toolCall;
+      }
+
+      const textPart: TextContent = {
+        type: "text",
+        text: part.text ?? "",
+      };
+
+      return textPart;
+    })
+    .filter((part): boolean => {
+      if (part.type === "text") {
+        return part.text.length > 0;
+      }
+
+      if (part.type === "thinking") {
+        return part.thinking.length > 0;
+      }
+
+      return !!part.name;
+    });
+
+const toGeminiParts = (content: MessageContent[]): Part[] =>
+  content.map((part): Part => {
+    if (part.type === "thinking") {
+      const geminiPart: Part = {
+        text: part.thinking,
+        thought: true,
+      };
+
+      if (part.thinkingSignature !== undefined) {
+        geminiPart.thoughtSignature = part.thinkingSignature;
+      }
+
+      return geminiPart;
+    }
+
+    if (part.type === "toolCall") {
+      return {
+        functionCall: {
+          id: part.id,
+          name: part.name,
+          args: part.arguments,
+        },
+        thoughtSignature: part.thoughtSignature!,
+      };
+    }
+
+    return {
+      text: part.text,
+    };
+  });
 
 export class GoogleProvider {
   private ai: GoogleGenAI;
@@ -21,9 +113,7 @@ export class GoogleProvider {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  chat = async (
-    input: LLMInput,
-  ): Promise<GeminiChatResponse | undefined> => {
+  chat = async (input: LLMInput): Promise<GeminiChatResponse | undefined> => {
     if (!input.messages.length) return;
 
     const tools: Tool[] = input.tools.map((tool) => ({
@@ -69,25 +159,38 @@ export class GoogleProvider {
       );
     }
 
-    return { content: this.parseGeminiResponse(interaction), parts: interaction.candidates?.[0]?.content?.parts ?? null };
+    return {
+      content: this.parseGeminiResponse(interaction),
+      parts: normalizeMessageContent(
+        interaction.candidates?.[0]?.content?.parts ?? null,
+      ),
+    };
   };
 
   buildContents = (messages: AgentMessage[]): Content[] =>
-    messages.map((message) => {
+    messages.map((message): Content => {
       switch (message.role) {
-        case "user":
+        case "user": {
+          const parts: Part[] = message.content.map(
+            (part): Part => ({
+              text: part.text,
+            }),
+          );
+
           return {
             role: "user",
-            parts: [{ text: message.content }],
+            parts,
           };
+        }
 
-        case "assistant":
+        case "assistant": {
           return {
             role: "assistant",
-            parts: message.content,
+            parts: toGeminiParts(message.content),
           };
+        }
 
-        case "toolResult":
+        case "toolResult": {
           return {
             role: "user",
             parts: [
@@ -100,6 +203,7 @@ export class GoogleProvider {
               },
             ],
           };
+        }
       }
     });
 
@@ -107,7 +211,7 @@ export class GoogleProvider {
     const parts = response.candidates?.[0]?.content?.parts ?? [];
 
     const text = parts
-      .filter((part) => !part.thought )
+      .filter((part) => !part.thought)
       .map((part) => part.text ?? "")
       .join("\n");
 

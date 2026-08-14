@@ -124,9 +124,13 @@ export interface LLMResponse {
   error: string | null;
 }
 
-export interface GeminiChatResponse {
+export interface LLMChatResponse {
   content: ParsedResponse | null;
   parts: MessageContent[] | null;
+  isError: boolean;
+  error: string | null;
+  isRetryable?: boolean;
+  retryAfterMs?: number;
 }
 
 export type Provider = GoogleProvider;
@@ -159,4 +163,10 @@ export type ModelDefinition = {
   maxTokens: number;
   reasoning: boolean;
   provider: "google";
+};
+
+export type CompactionResult = {
+  summary: string;
+  recentMessages: AgentMessage[];
+  compactedMessages: AgentMessage[];
 };

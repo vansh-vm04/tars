@@ -3,6 +3,7 @@ import type { ModelDefinition } from "../types.js";
 export const availableProviders = ["google"] as const;
 
 const modelsToShow = [
+  "gemini-3.7-flash",
   "gemini-3.6-flash",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",

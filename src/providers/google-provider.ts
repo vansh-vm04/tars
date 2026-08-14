@@ -11,15 +11,29 @@ import type {
   LLMInput,
   AgentMessage,
   ParsedResponse,
-  GeminiChatResponse,
   MessageContent,
   TextContent,
   ThinkingContent,
   ToolCall,
+  LLMChatResponse,
 } from "../types.js";
-import { LLMError } from "../error.js";
 
-const normalizeMessageContent = (parts: Part[] | null | undefined): MessageContent[] =>
+const resolveRetryAfterMs = (error: any) => {
+  const retryDelay = error?.details?.find(
+    (detail: any) =>
+      detail?.["@type"] === "type.googleapis.com/google.rpc.RetryInfo",
+  )?.retryDelay;
+
+  if (!retryDelay) return 60000;
+
+  const match = retryDelay.match(/^([\d.]+)s$/);
+
+  return match ? Math.ceil(Number(match[1]) * 1000) : 60000;
+};
+
+const normalizeMessageContent = (
+  parts: Part[] | null | undefined,
+): MessageContent[] =>
   (parts ?? [])
     .filter(
       (part) =>
@@ -113,8 +127,15 @@ export class GoogleProvider {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  chat = async (input: LLMInput): Promise<GeminiChatResponse | undefined> => {
-    if (!input.messages.length) return;
+  chat = async (input: LLMInput): Promise<LLMChatResponse> => {
+    if (!input.messages.length) {
+      return {
+        content: null,
+        parts: null,
+        isError: true,
+        error: "No messages to send.",
+      };
+    }
 
     const tools: Tool[] = input.tools.map((tool) => ({
       functionDeclarations: [
@@ -146,17 +167,26 @@ export class GoogleProvider {
     try {
       interaction = await this.ai.models.generateContent(params);
     } catch (error: any) {
-      if (error?.status === 429 || error?.code === 429) {
-        throw new LLMError(
-          "Gemini API quota exceeded. Please check your API quota or try another model.",
-          429,
-        );
+      const parsed = JSON.parse(error.message).error;
+      if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
+        return {
+          content: null,
+          parts: null,
+          isError: true,
+          error: parsed.message,
+          isRetryable: true,
+          retryAfterMs: resolveRetryAfterMs(parsed),
+        };
       }
 
-      throw new LLMError(
-        error?.message ?? "Gemini API request failed.",
-        error?.status ?? error?.code,
-      );
+      return {
+        content: null,
+        parts: null,
+        isError: true,
+        error: parsed?.message ?? "An unknown error occurred.",
+        isRetryable: false,
+        retryAfterMs: 0,
+      };
     }
 
     return {
@@ -164,6 +194,8 @@ export class GoogleProvider {
       parts: normalizeMessageContent(
         interaction.candidates?.[0]?.content?.parts ?? null,
       ),
+      isError: false,
+      error: null,
     };
   };
 

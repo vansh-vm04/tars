@@ -2,13 +2,7 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
   serializeConversation,
 } from "./utils.js";
-import type { AgentMessage, Provider } from "../types.js";
-
-export type CompactionResult = {
-  summary: string;
-  recentMessages: AgentMessage[];
-  compactedMessages: AgentMessage[];
-};
+import type { AgentMessage, Provider, CompactionResult } from "../types.js";
 
 export async function compact(
   messages: AgentMessage[],

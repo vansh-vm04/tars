@@ -1,4 +1,3 @@
-import { LLMError } from "./error.js";
 import type {
   LLMChatResponse,
   LLMInput,
@@ -60,8 +59,7 @@ export const callLLM = async (
         error: null,
       };
     } catch (error) {
-      lastErrorMessage =
-        (error as LLMError)?.message || "An unknown error occurred.";
+      lastErrorMessage = "An unknown error occurred.";
     }
   }
 

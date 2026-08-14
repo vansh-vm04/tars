@@ -3,6 +3,7 @@ import type {
   Session,
   SessionConfig,
   LoadedSession,
+  SessionMessageEntry,
 } from "../types.js";
 import { SESSIONS_DIR } from "./path.js";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -84,19 +85,26 @@ export const loadSession = async (
   try {
     const data = await readFile(filePath, "utf8");
     const entries = parseJsonObjects(data);
-    const sessionEntry = entries.find(isSessionEntry);
+    const messages: SessionMessageEntry[] = [];
+    let session: Session | null = null;
 
-    if (!sessionEntry) {
+    entries.forEach((entry) => {
+      if (isSessionEntry(entry)) {
+        const { type: _type, ...sessionData } = entry;
+        session = sessionData;
+      } else if (isSessionMessageEntry(entry)) {
+        messages.push(entry);
+      }
+    });
+
+    if (!session) {
       return null;
     }
 
-    const { type: _type, ...session } = sessionEntry;
-    const messages = entries.filter(isMessageEntry).map((entry) => {
-      const { type: _messageType, ...message } = entry;
-      return message;
-    });
+    const finalMessages = buildContext(messages);
+    const result = finalMessages.map(toAgentMessage);
 
-    return { session, messages };
+    return { session, messages: result };
   } catch {
     return null;
   }
@@ -142,60 +150,15 @@ export const updateSessionModel = async (sessionId: string, model: string) => {
 
 const parseJsonObjects = (data: string): unknown[] => {
   const objects: unknown[] = [];
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  let startIndex = -1;
+  const lines = data.split("\n");
 
-  for (let index = 0; index < data.length; index += 1) {
-    const char = data[index];
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-
-      if (char === "\\") {
-        escaped = true;
-        continue;
-      }
-
-      if (char === '"') {
-        inString = false;
-      }
-
-      continue;
-    }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === "{") {
-      if (depth === 0) {
-        startIndex = index;
-      }
-
-      depth += 1;
-      continue;
-    }
-
-    if (char === "}") {
-      depth -= 1;
-
-      if (depth === 0 && startIndex !== -1) {
-        const rawObject = data.slice(startIndex, index + 1);
-
-        try {
-          const parsed = JSON.parse(rawObject) as Record<string, unknown>;
-          objects.push(parsed);
-        } catch {
-          // Ignore malformed records and keep scanning.
-        }
-
-        startIndex = -1;
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine) {
+      try {
+        objects.push(JSON.parse(trimmedLine));
+      } catch {
+        // Ignore malformed records and keep scanning.
       }
     }
   }
@@ -223,20 +186,49 @@ const isSessionEntry = (
   );
 };
 
-const isMessageEntry = (
+const isSessionMessageEntry = (
   value: unknown,
-): value is AgentMessage & { type?: string } => {
+): value is SessionMessageEntry => {
   if (!isRecord(value)) {
     return false;
   }
 
-  if (value.type === "message") {
-    return true;
+  return (
+    (value.type === "message" || value.type === "compaction") &&
+    (value.role === "user" ||
+      value.role === "assistant" ||
+      value.role === "toolResult")
+  );
+};
+
+const toAgentMessage = (entry: SessionMessageEntry): AgentMessage => {
+  const { type: _type, ...message } = entry;
+  return message as AgentMessage;
+};
+
+const buildContext = (
+  entries: SessionMessageEntry[],
+): SessionMessageEntry[] => {
+  let compactionIndex = -1;
+
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    if (entries[i]?.type === "compaction") {
+      compactionIndex = i;
+      break;
+    }
   }
 
-  return (
-    value.role === "user" ||
-    value.role === "assistant" ||
-    value.role === "toolResult"
-  );
+  if (compactionIndex === -1) {
+    return entries;
+  }
+
+  const start = Math.max(0, compactionIndex - 20);
+  let recentMessages = entries.slice(start, compactionIndex - 1);
+  let afterCompaction = entries.slice(compactionIndex + 1);
+
+  return [
+    entries[compactionIndex] as SessionMessageEntry,
+    ...recentMessages,
+    ...afterCompaction,
+  ];
 };

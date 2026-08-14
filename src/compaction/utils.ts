@@ -1,4 +1,4 @@
-import type { AgentMessage, MessageContent } from "../types.js";
+import type { AgentMessage, LLMInput, MessageContent } from "../types.js";
 
 const TOOL_RESULT_MAX_CHARS = 2000;
 
@@ -147,4 +147,53 @@ function truncateForSummary(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
   const truncatedChars = text.length - maxChars;
   return `${text.slice(0, maxChars)}\n\n[... ${truncatedChars} more characters truncated]`;
+}
+
+const KEEP_RECENT_TOKENS = 20_000;
+
+export function splitForCompaction(messages: AgentMessage[]) {
+  let tokenCount = 0;
+  let splitIndex = messages.length;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const messageTokens = estimateTokenCount([messages[i]!]);
+
+    if (tokenCount + messageTokens > KEEP_RECENT_TOKENS) {
+      break;
+    }
+
+    tokenCount += messageTokens;
+    splitIndex = i;
+  }
+
+  return {
+    messagesToCompact: messages.slice(0, splitIndex),
+    recentMessages: messages.slice(splitIndex),
+    recentTokens: tokenCount,
+  };
+}
+
+export function estimateTokenCount(messages: AgentMessage[]): number {
+  const messageTokens = messages.reduce((total, message) => {
+    return total + messageToText(message).length;
+  }, 0);
+
+  return Math.ceil((messageTokens) / 4);
+}
+
+export function messageToText(message: AgentMessage): string {
+  switch (message.role) {
+    case "user":
+      return message.content.map((part) => part.text).join(" ");
+    case "assistant":
+      return message.content
+        .map((part) => {
+          if (part.type === "text") return part.text;
+          if (part.type === "thinking") return part.thinking;
+          return `${part.name}(${JSON.stringify(part.arguments)})`;
+        })
+        .join(" ");
+    case "toolResult":
+      return message.content.join(" ");
+  }
 }

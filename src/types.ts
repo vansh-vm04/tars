@@ -154,6 +154,18 @@ export interface LoadedSession {
   messages: AgentMessage[];
 }
 
+export type SessionEntryType = "message" | "compaction";
+
+export interface SessionMessageEntry {
+  type: SessionEntryType;
+  role: "user" | "assistant" | "toolResult";
+  content: MessageContent[];
+  toolCallId?: string;
+  toolName?: string;
+  isError?: boolean;
+  timestamp?: number;
+}
+
 export type Content = Part; // Gemini specific parts response
 
 export type ModelDefinition = {
@@ -166,7 +178,6 @@ export type ModelDefinition = {
 };
 
 export type CompactionResult = {
-  summary: string;
-  recentMessages: AgentMessage[];
-  compactedMessages: AgentMessage[];
+  compactionEntry: AgentMessage;
+  updatedMessages: AgentMessage[];
 };

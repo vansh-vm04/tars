@@ -11,7 +11,6 @@ import { loadConfig } from "./storage/config.js";
 import { availableCommands } from "./commands/index.js";
 import { SessionManager } from "./session-manager.js";
 import { ContextManager } from "./context-manager.js";
-import { availableModels } from "./providers/models.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -77,19 +76,15 @@ while (true) {
   }
 
   if (contextManager.shouldCompact(agent.messagesList)) {
-    console.log(
-      chalk.yellowBright(
-        "\n\n => Compacting conversation...\n\n",
-      ),
-    );
+    console.log(chalk.yellowBright("\n\n => Compacting conversation...\n\n"));
     const compacted = await contextManager.compact(
       agent.messagesList,
       provider,
       config.model,
     );
-    agent.messagesList = compacted.compactedMessages;
-    await sessionManager.saveMessage(compacted.compactedMessages, "compaction");
-    persistedMessagesCount = compacted.compactedMessages.length;
+    agent.messagesList = compacted.updatedMessages;
+    await sessionManager.saveMessage([compacted.compactionEntry], "compaction");
+    persistedMessagesCount = compacted.updatedMessages.length;
   }
 
   const response = await agent.prompt([userInput]);

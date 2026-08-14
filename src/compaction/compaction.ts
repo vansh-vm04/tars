@@ -1,26 +1,17 @@
 import {
   SUMMARIZATION_SYSTEM_PROMPT,
   serializeConversation,
+  splitForCompaction,
 } from "./utils.js";
-import type { AgentMessage, Provider, CompactionResult } from "../types.js";
+import type { AgentMessage, CompactionResult, Provider } from "../types.js";
 
 export async function compact(
   messages: AgentMessage[],
   provider: Provider,
   model: string,
-  keepRecent = 20,
 ): Promise<CompactionResult> {
-  if (messages.length <= keepRecent) {
-    return {
-      summary: "",
-      recentMessages: messages,
-      compactedMessages: messages,
-    };
-  }
-
-  const recentMessages = messages.slice(-keepRecent);
-  const oldMessages = messages.slice(0, -keepRecent);
-  const summaryPrompt = serializeConversation(oldMessages).trim();
+  const { messagesToCompact, recentMessages } = splitForCompaction(messages);
+  const summaryPrompt = serializeConversation(messagesToCompact).trim();
 
   const response = await provider.chat({
     model,
@@ -28,32 +19,36 @@ export async function compact(
     messages: [
       {
         role: "user",
-        content: [{ type: "text", text: summaryPrompt || "Summarize the prior conversation state." }],
+        content: [
+          {
+            type: "text",
+            text: summaryPrompt || "Summarize the prior conversation state.",
+          },
+        ],
         timestamp: Date.now(),
       },
     ],
     tools: [],
   });
 
-  const summary = response?.content?.text?.trim() || summaryPrompt || "No prior context retained.";
+  const summary =
+    response?.content?.text?.trim() ||
+    summaryPrompt ||
+    "No prior context retained.";
 
-  const compactedMessages: AgentMessage[] = [
-    {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: `Context summary:\n${summary}`,
-        },
-      ],
-      timestamp: Date.now(),
-    },
-    ...recentMessages,
-  ];
+  const summaryMessage: AgentMessage = {
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: `Context summary:\n${summary}`,
+      },
+    ],
+    timestamp: Date.now(),
+  };
 
   return {
-    summary,
-    recentMessages,
-    compactedMessages,
+    compactionEntry: summaryMessage,
+    updatedMessages: [summaryMessage, ...recentMessages],
   };
 }

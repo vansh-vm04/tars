@@ -1,5 +1,6 @@
 import { compact } from "./compaction/compaction.js";
 import type { AgentMessage, Provider } from "./types.js";
+import { estimateTokenCount } from "./compaction/utils.js";
 
 export class ContextManager {
   constructor(
@@ -14,23 +15,7 @@ export class ContextManager {
   }
 
   estimateTokenCount(messages: AgentMessage[]): number {
-    return messages.reduce((total, message) => {
-      const text =
-        message.role === "user"
-          ? message.content.map((part) => part.text).join(" ")
-          : message.role === "assistant"
-            ? message.content
-                .filter((part) => part.type === "text" || part.type === "thinking")
-                .map((part) =>
-                  part.type === "text" ? part.text : part.thinking,
-                )
-                .join(" ")
-            : message.content
-                .map((part) => part)
-                .join(" ");
-
-      return total + Math.ceil(text.length / 4);
-    }, 0);
+    return estimateTokenCount(messages);
   }
 
   async compact(
@@ -39,6 +24,6 @@ export class ContextManager {
     model: string,
     keepRecent = 20,
   ) {
-    return compact(messages, provider, model, keepRecent);
+    return compact(messages, provider, model);
   }
 }

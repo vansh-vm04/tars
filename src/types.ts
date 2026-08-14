@@ -22,14 +22,14 @@ export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
 export type MessageContent = TextContent | ThinkingContent | ToolCall;
 
 export interface TextContent {
-	type: "text";
-	text: string;
+  type: "text";
+  text: string;
 }
 
 export interface ThinkingContent {
-	type: "thinking";
-	thinking: string;
-	thinkingSignature?: string;
+  type: "thinking";
+  thinking: string;
+  thinkingSignature?: string;
 }
 
 export interface AgentTool<T extends Record<string, unknown>> {
@@ -110,7 +110,11 @@ export interface Config {
 export interface Command {
   name: string;
   description: string;
-  execute(rl: readLine.Interface, agent: Agent, sessionManager?: SessionManager): Promise<void>;
+  execute(
+    rl: readLine.Interface,
+    agent: Agent,
+    sessionManager?: SessionManager,
+  ): Promise<void>;
 }
 
 export interface LLMResponse {
@@ -147,3 +151,12 @@ export interface LoadedSession {
 }
 
 export type Content = Part; // Gemini specific parts response
+
+export type ModelDefinition = {
+  id: string;
+  name: string;
+  contextWindow: number;
+  maxTokens: number;
+  reasoning: boolean;
+  provider: "google";
+};

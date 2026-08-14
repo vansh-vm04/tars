@@ -10,6 +10,8 @@ import { GoogleProvider } from "./providers/google-provider.js";
 import { loadConfig } from "./storage/config.js";
 import { availableCommands } from "./commands/index.js";
 import { SessionManager } from "./session-manager.js";
+import { ContextManager } from "./context-manager.js";
+import { availableModels } from "./providers/models.js";
 
 const rl = readLine.createInterface({ input, output });
 
@@ -20,6 +22,9 @@ const auth = await loadAuth(rl);
 const config = await loadConfig(rl);
 
 const provider = new GoogleProvider(auth.apiKey);
+const contextManager = new ContextManager(
+  availableModels.find((model) => model.id === config.model)?.contextWindow!
+);
 
 const agent = new Agent(
   config.model,
@@ -70,6 +75,18 @@ while (true) {
       },
       userInput,
     );
+  }
+
+  if (contextManager.shouldCompact(agent.messagesList)) {
+    console.log(chalk.yellowBright("\n\n => Compacting context due to token limit...\n\n"));
+    const compacted = await contextManager.compact(
+      agent.messagesList,
+      provider,
+      config.model,
+    );
+    agent.messagesList = compacted.compactedMessages;
+    await sessionManager.saveMessage(compacted.compactedMessages, "compaction");
+    persistedMessagesCount = compacted.compactedMessages.length;
   }
 
   const response = await agent.prompt([userInput]);

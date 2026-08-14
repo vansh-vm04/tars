@@ -54,11 +54,11 @@ export class SessionManager {
     return session;
   }
 
-  async saveMessage(messages: AgentMessage[]): Promise<void> {
+  async saveMessage(messages: AgentMessage[], type?: string): Promise<void> {
     if (!this.session) {
       throw new Error("No active session");
     }
-    await addMessagesToSession(this.session.id, messages);
+    await addMessagesToSession(this.session.id, messages, type);
   }
 
   async updateModel(model: string): Promise<void> {

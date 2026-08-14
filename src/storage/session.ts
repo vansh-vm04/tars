@@ -55,6 +55,7 @@ export const addMessageToSession = async (
 export const addMessagesToSession = async (
   id: number,
   messages: AgentMessage[],
+  type?: string,
 ) => {
   const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
 
@@ -66,7 +67,7 @@ export const addMessagesToSession = async (
     messages
       .map((message) =>
         JSON.stringify({
-          type: "message",
+          type: type ?? "message",
           ...message,
         }),
       )

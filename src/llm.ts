@@ -56,7 +56,7 @@ export const callLLM = async (
         content: response.content,
         parts: response.parts,
         isError: false,
-        error: null,
+        error: "",
       };
     } catch (error) {
       lastErrorMessage = "An unknown error occurred.";

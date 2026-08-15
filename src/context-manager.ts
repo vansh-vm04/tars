@@ -1,6 +1,7 @@
 import { compact } from "./compaction/compaction.js";
-import type { AgentMessage, Provider } from "./types.js";
+import type { AgentMessage, Provider, SessionMessageEntry } from "./types.js";
 import { estimateTokenCount } from "./compaction/utils.js";
+import { toAgentMessage } from "./utils/common.js";
 
 export class ContextManager {
   constructor(
@@ -8,8 +9,8 @@ export class ContextManager {
     private readonly compactionThreshold = 0.7,
   ) {}
 
-  shouldCompact(messages: AgentMessage[]): boolean {
-    const tokenCount = this.estimateTokenCount(messages);
+  shouldCompact(messages: SessionMessageEntry[]): boolean {
+    const tokenCount = this.estimateTokenCount(messages.map(toAgentMessage));
     console.log(`Current token count: ${tokenCount}`);
     return tokenCount >= this.contextWindow * this.compactionThreshold;
   }
@@ -19,10 +20,9 @@ export class ContextManager {
   }
 
   async compact(
-    messages: AgentMessage[],
+    messages: SessionMessageEntry[],
     provider: Provider,
     model: string,
-    keepRecent = 20,
   ) {
     return compact(messages, provider, model);
   }

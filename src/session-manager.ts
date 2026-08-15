@@ -4,6 +4,7 @@ import type {
   Session,
   SessionConfig,
   LoadedSession,
+  SessionMessageEntry,
 } from "./types.js";
 import {
   addSessionToList,
@@ -11,6 +12,7 @@ import {
   addMessagesToSession,
   loadSession,
   updateSessionModel,
+  listSessions,
 } from "./storage/session.js";
 
 export class SessionManager {
@@ -42,39 +44,36 @@ export class SessionManager {
     return session;
   }
 
-  async load(id: string): Promise<LoadedSession> {
-    const sessionId = this.parseSessionId(id);
+  async load(sessionId: string): Promise<LoadedSession> {
     const session = await loadSession(sessionId);
 
     if (!session) {
-      throw new Error(`Session ${id} not found`);
+      throw new Error(`Session ${sessionId} not found`);
     }
 
     this.session = session.session;
     return session;
   }
 
-  async saveMessage(messages: AgentMessage[], type?: string): Promise<void> {
+  async listSessions(): Promise<Session[]> {
+    const sessions = await listSessions();
+    return sessions;
+  }
+
+  async saveMessage(
+    messages: (AgentMessage | SessionMessageEntry)[],
+    type?: string,
+  ): Promise<SessionMessageEntry[]> {
     if (!this.session) {
       throw new Error("No active session");
     }
-    await addMessagesToSession(this.session.id, messages, type);
+    return await addMessagesToSession(this.session.id, messages, type);
   }
 
   async updateModel(model: string): Promise<void> {
     if (this.session) {
       await updateSessionModel(String(this.session.id), model);
     }
-  }
-
-  private parseSessionId(id: string): number {
-    const sessionId = Number.parseInt(id, 10);
-
-    if (Number.isNaN(sessionId)) {
-      throw new Error(`Invalid session id: ${id}`);
-    }
-
-    return sessionId;
   }
 
   private async generateSessionName(

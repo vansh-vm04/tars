@@ -1,7 +1,6 @@
 import readLine from "node:readline/promises";
 import type { Command } from "../types.js";
 import type { Agent } from "../agent.js";
-import type { SessionManager } from "../session-manager.js";
 import { exitCommand } from "./exit.js";
 import { newCommand } from "./new.js";
 import { modelCommand } from "./model.js";
@@ -16,7 +15,6 @@ export const helpCommand: Command = {
   async execute(
     _rl: readLine.Interface,
     _agent: Agent,
-    _sessionManager?: SessionManager,
   ) {
     console.log(chalk.blueBright("\n\nAvailable commands:\n"));
 

@@ -4,7 +4,7 @@ import { CONFIG_FILE, TARS_DIR } from "./path.js";
 import readLine from "node:readline/promises";
 import type { Config } from "../types.js";
 import { availableModels } from "../providers/models.js";
-import type { SessionManager } from "../session-manager.js";
+import type { Agent } from "../agent.js";
 
 export async function loadConfig(rl: readLine.Interface): Promise<Config> {
   try {
@@ -21,7 +21,7 @@ export async function loadConfig(rl: readLine.Interface): Promise<Config> {
 
 export const askUserForModel = async (
   rl: readLine.Interface,
-  sessionManager?: SessionManager,
+  agent?: Agent,
 ): Promise<Config> => {
   while (true) {
     const input = await rl.question(
@@ -43,8 +43,8 @@ export const askUserForModel = async (
 
       await saveConfig(config);
 
-      if (sessionManager && sessionManager.currentSession) {
-        await sessionManager.updateModel(config.model);
+      if (agent) {
+        await agent.setModelName(config.model);
       }
 
       return config;

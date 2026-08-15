@@ -1,4 +1,5 @@
-import type { AgentMessage, LLMInput, MessageContent } from "../types.js";
+import type { AgentMessage, LLMInput, MessageContent, SessionMessageEntry } from "../types.js";
+import { toAgentMessage } from "../utils/common.js";
 
 const TOOL_RESULT_MAX_CHARS = 2000;
 
@@ -151,12 +152,12 @@ function truncateForSummary(text: string, maxChars: number): string {
 
 const KEEP_RECENT_TOKENS = 20_000;
 
-export function splitForCompaction(messages: AgentMessage[]) {
+export function splitForCompaction(messages: SessionMessageEntry[]) {
   let tokenCount = 0;
   let splitIndex = messages.length;
 
   for (let i = messages.length - 1; i >= 0; i--) {
-    const messageTokens = estimateTokenCount([messages[i]!]);
+    const messageTokens = estimateTokenCount([toAgentMessage(messages[i]!)]);
 
     if (tokenCount + messageTokens > KEEP_RECENT_TOKENS) {
       break;

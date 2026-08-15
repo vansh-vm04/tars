@@ -2,7 +2,6 @@ import type { Schema, Part } from "@google/genai";
 import readLine from "node:readline/promises";
 import type { Agent } from "./agent.js";
 import { GoogleProvider } from "./providers/google-provider.js";
-import type { SessionManager } from "./session-manager.js";
 
 export interface Tool {
   name: string;
@@ -67,7 +66,7 @@ export interface ToolCall {
 }
 
 export interface AgentConfig {
-  messages?: AgentMessage[];
+  messages?: SessionMessageEntry[];
   tools?: Tool[];
 }
 
@@ -113,7 +112,6 @@ export interface Command {
   execute(
     rl: readLine.Interface,
     agent: Agent,
-    sessionManager?: SessionManager,
   ): Promise<void>;
 }
 
@@ -121,7 +119,7 @@ export interface LLMResponse {
   content: ParsedResponse | null;
   parts: MessageContent[] | null;
   isError: boolean;
-  error: string | null;
+  error: string;
 }
 
 export interface LLMChatResponse {
@@ -136,7 +134,7 @@ export interface LLMChatResponse {
 export type Provider = GoogleProvider;
 
 export interface Session {
-  id: number;
+  id: string;
   name: string;
   cwd: string;
   model: string;
@@ -151,19 +149,21 @@ export interface SessionConfig {
 
 export interface LoadedSession {
   session: Session;
-  messages: AgentMessage[];
+  messages: SessionMessageEntry[];
 }
 
 export type SessionEntryType = "message" | "compaction";
 
 export interface SessionMessageEntry {
   type: SessionEntryType;
+  id: string;
   role: "user" | "assistant" | "toolResult";
-  content: MessageContent[];
+  content: MessageContent[] | string[];
   toolCallId?: string;
   toolName?: string;
   isError?: boolean;
   timestamp?: number;
+  lastCompactedMessageId?: string;
 }
 
 export type Content = Part; // Gemini specific parts response
@@ -178,6 +178,12 @@ export type ModelDefinition = {
 };
 
 export type CompactionResult = {
-  compactionEntry: AgentMessage;
-  updatedMessages: AgentMessage[];
+  compactionEntry: SessionMessageEntry;
+  updatedMessages: SessionMessageEntry[];
+};
+
+export type AgentLoopResponse = {
+  finalResponse: string;
+  newMessages: AgentMessage[];
+  isError: boolean;
 };

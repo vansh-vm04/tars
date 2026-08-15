@@ -1,5 +1,6 @@
 import { callLLM } from "./llm.js";
 import type {
+  AgentLoopResponse,
   AgentMessage,
   Context,
   LLMResponse,
@@ -10,19 +11,19 @@ import type {
 export const runAgentLoop = async (
   model: string,
   provider: Provider,
-  initialMessages: AgentMessage[],
-  newMessages: string[],
+  userMessage: string,
   context: Context,
-) => {
-  let messages: AgentMessage[] = initialMessages;
+): Promise<AgentLoopResponse> => {
+  let initialMessages: AgentMessage[] = context.messages || [];
+  let newMessages: AgentMessage[] = [];
   let tools = context.tools || [];
   let systemPrompt = context.systemPrompt;
   let LLMResponse: LLMResponse | undefined;
 
   // Add the initial user message to the messages array
-  messages.push({
+  newMessages.push({
     role: "user",
-    content: [{ type: "text", text: newMessages.join("\n") }],
+    content: [{ type: "text", text: userMessage }],
     timestamp: Date.now(),
   });
 
@@ -30,14 +31,14 @@ export const runAgentLoop = async (
     LLMResponse = await callLLM(provider, {
       model,
       systemPrompt,
-      messages,
+      messages: [...initialMessages, ...newMessages],
       tools,
     });
 
     if (LLMResponse.isError) {
       return {
         finalResponse: LLMResponse.error,
-        messages,
+        newMessages,
         isError: true,
       };
     }
@@ -45,14 +46,14 @@ export const runAgentLoop = async (
     const toolCalls = LLMResponse?.content?.toolCalls || [];
 
     if (toolCalls.length > 0) {
-      messages.push({
+      newMessages.push({
         role: "assistant",
         content: LLMResponse?.parts ?? [],
       });
       for (const toolCall of toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
-          messages.push({
+          newMessages.push({
             role: "toolResult",
             toolCallId: toolCall.id || "",
             toolName: toolCall.name,
@@ -74,7 +75,7 @@ export const runAgentLoop = async (
             isError: true,
           };
         }
-        messages.push({
+        newMessages.push({
           role: "toolResult",
           toolCallId: toolCallId,
           toolName: tool.name,
@@ -85,7 +86,7 @@ export const runAgentLoop = async (
       }
     } else {
       // no tool calls, return the response
-      messages.push({
+      newMessages.push({
         role: "assistant",
         content: LLMResponse?.parts ?? [],
       });
@@ -95,7 +96,7 @@ export const runAgentLoop = async (
 
   return {
     finalResponse: LLMResponse?.content?.text || "",
-    messages,
+    newMessages,
     isError: false,
   };
 };

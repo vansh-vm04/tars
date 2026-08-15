@@ -2,8 +2,6 @@ import readLine from "node:readline/promises";
 import chalk from "chalk";
 import { type Command } from "../types.js";
 import { type Agent } from "../agent.js";
-import { listSessions, loadSession } from "../storage/session.js";
-import { type SessionManager } from "../session-manager.js";
 
 export const sessionCommand: Command = {
   name: "/session",
@@ -11,9 +9,8 @@ export const sessionCommand: Command = {
   async execute(
     rl: readLine.Interface,
     agent: Agent,
-    sessionManager: SessionManager,
   ) {
-    const sessions = await listSessions();
+    const sessions = await agent.allSessions();
     const currentCwd = process.cwd();
 
     const matchingSessions = sessions.filter((s) => s.cwd === currentCwd);
@@ -52,21 +49,17 @@ export const sessionCommand: Command = {
     }
 
     const selectedSession = matchingSessions[selectedIndex]!;
-    const loadedSession = await loadSession(selectedSession.id);
+    const loadedSession = await agent.loadSession(selectedSession.id);
 
     if (!loadedSession) {
       console.log(chalk.red("Unable to load the selected session."));
       return;
     }
 
-    agent.modelName = loadedSession.session.model;
-    agent.messagesList = loadedSession.messages;
-    sessionManager.currentSession = loadedSession.session;
-
     console.log(
       chalk.greenBright(
-        `Loaded session ${loadedSession.session.name} from ${new Date(
-          loadedSession.session.createdAt,
+        `Loaded session ${loadedSession.name} from ${new Date(
+          loadedSession.createdAt,
         ).toLocaleString()}`,
       ),
     );

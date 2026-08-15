@@ -7,18 +7,20 @@ import type {
 } from "../types.js";
 import { SESSIONS_DIR } from "./path.js";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { toAgentMessage } from "../utils/common.js";
 
 export const createSession = async (
   config: SessionConfig,
 ): Promise<Session> => {
-  const id = Date.now();
+  const id = generateUniqueId();
 
   const session: Session = {
     id,
     name: config.name,
     cwd: config.cwd,
     model: config.model,
-    createdAt: id,
+    createdAt: Date.now(),
   };
 
   const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
@@ -41,46 +43,53 @@ export const addSessionToList = async (session: Session) => {
 };
 
 export const addMessageToSession = async (
-  id: number,
+  sessionId: string,
   message: AgentMessage,
 ) => {
-  const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
+  const filePath = `${SESSIONS_DIR}/ses_${sessionId}.jsonl`;
 
   await appendFile(
     filePath,
-    JSON.stringify({ type: "message", ...message }) + "\n",
+    JSON.stringify({ type: "message", id: generateUniqueId(), ...message }) +
+      "\n",
     "utf8",
   );
 };
 
 export const addMessagesToSession = async (
-  id: number,
-  messages: AgentMessage[],
+  sessionId: string,
+  messages: (AgentMessage | SessionMessageEntry)[],
   type?: string,
-) => {
-  const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
+): Promise<SessionMessageEntry[]> => {
+  const filePath = `${SESSIONS_DIR}/ses_${sessionId}.jsonl`;
 
   if (messages.length === 0) {
-    return;
+    return [];
   }
 
+  const sessionEntries = messages.map((message) => {
+    if (isSessionMessageEntry(message) && message?.type === "compaction") {
+      return { ...message } as SessionMessageEntry;
+    }
+    return {
+      type: type ?? "message",
+      id: generateUniqueId(),
+      ...message,
+    } as SessionMessageEntry;
+  });
+
   const content =
-    messages
-      .map((message) =>
-        JSON.stringify({
-          type: type ?? "message",
-          ...message,
-        }),
-      )
-      .join("\n") + "\n";
+    sessionEntries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
 
   await appendFile(filePath, content, "utf8");
+
+  return sessionEntries;
 };
 
 export const loadSession = async (
-  id: number,
+  sessionId: string,
 ): Promise<LoadedSession | null> => {
-  const filePath = `${SESSIONS_DIR}/ses_${id}.jsonl`;
+  const filePath = `${SESSIONS_DIR}/ses_${sessionId}.jsonl`;
 
   try {
     const data = await readFile(filePath, "utf8");
@@ -102,9 +111,8 @@ export const loadSession = async (
     }
 
     const finalMessages = buildContext(messages);
-    const result = finalMessages.map(toAgentMessage);
 
-    return { session, messages: result };
+    return { session, messages: finalMessages };
   } catch {
     return null;
   }
@@ -201,19 +209,21 @@ const isSessionMessageEntry = (
   );
 };
 
-const toAgentMessage = (entry: SessionMessageEntry): AgentMessage => {
-  const { type: _type, ...message } = entry;
-  return message as AgentMessage;
-};
-
 const buildContext = (
   entries: SessionMessageEntry[],
 ): SessionMessageEntry[] => {
   let compactionIndex = -1;
+  let lastCompactionIndex: number | undefined;
 
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     if (entries[i]?.type === "compaction") {
       compactionIndex = i;
+    }
+    if (
+      compactionIndex !== -1 &&
+      entries[i]?.id === entries[compactionIndex]?.lastCompactedMessageId
+    ) {
+      lastCompactionIndex = i;
       break;
     }
   }
@@ -222,13 +232,13 @@ const buildContext = (
     return entries;
   }
 
-  const start = Math.max(0, compactionIndex - 20);
-  let recentMessages = entries.slice(start, compactionIndex - 1);
-  let afterCompaction = entries.slice(compactionIndex + 1);
+  let afterCompaction = entries
+    .slice(lastCompactionIndex! + 1)
+    .filter((m) => m.type !== "compaction");
 
-  return [
-    entries[compactionIndex] as SessionMessageEntry,
-    ...recentMessages,
-    ...afterCompaction,
-  ];
+  return [entries[compactionIndex] as SessionMessageEntry, ...afterCompaction];
+};
+
+const generateUniqueId = (): string => {
+  return randomUUID();
 };

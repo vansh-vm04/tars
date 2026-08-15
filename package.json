@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "bun src/index.ts",
+    "tui": "bun src/tui/tui.ts",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -31,5 +32,9 @@
     "figlet": "^1.11.4",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0"
-  }
+  },
+  "trustedDependencies": [
+    "@google/genai",
+    "protobufjs"
+  ]
 }

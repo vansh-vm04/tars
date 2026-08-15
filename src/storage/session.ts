@@ -8,7 +8,6 @@ import type {
 import { SESSIONS_DIR } from "./path.js";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { toAgentMessage } from "../utils/common.js";
 
 export const createSession = async (
   config: SessionConfig,
@@ -187,7 +186,8 @@ const isSessionEntry = (
 
   return (
     value.type === "session" ||
-    (typeof value.id === "number" &&
+    (typeof value.id === "string" &&
+      typeof value.name === "string" &&
       typeof value.cwd === "string" &&
       typeof value.model === "string" &&
       typeof value.createdAt === "number")

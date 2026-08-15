@@ -38,9 +38,9 @@ while (true) {
     continue;
   }
 
-  if (userInput.trim().startsWith("/")) {
+  if (userInput.startsWith("/")) {
     const command = availableCommands.find(
-      (cmd) => cmd.name == userInput.trim(),
+      (cmd) => cmd.name == userInput,
     );
 
     if (command) {

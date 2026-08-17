@@ -109,10 +109,7 @@ export interface Config {
 export interface Command {
   name: string;
   description: string;
-  execute(
-    rl: readLine.Interface,
-    agent: Agent,
-  ): Promise<void>;
+  execute(rl: readLine.Interface, agent: Agent): Promise<void>;
 }
 
 export interface LLMResponse {
@@ -187,3 +184,51 @@ export type AgentLoopResponse = {
   newMessages: AgentMessage[];
   isError: boolean;
 };
+
+export type StopReason = "stop" | "length" | "toolUse" | "error" | "aborted";
+
+export type LLMStreamEvent =
+  | {
+      type: "thinking-start";
+    }
+  | {
+      type: "thinking-delta";
+      text: string;
+    }
+  | {
+      type: "thinking-end";
+    }
+  | {
+      type: "text-start";
+    }
+  | {
+      type: "text-delta";
+      text: string;
+    }
+  | {
+      type: "text-end";
+    }
+  | {
+      type: "tool-call-start";
+      id: string;
+      name: string;
+    }
+  | {
+      type: "tool-call-delta";
+      id: string;
+      arguments: string;
+    }
+  | {
+      type: "tool-call-end";
+      id: string;
+      name: string;
+      arguments: Record<string, unknown>;
+    }
+  | {
+      type: "finish";
+      reason: StopReason;
+    }
+  | {
+      type: "error";
+      error: Error;
+    };

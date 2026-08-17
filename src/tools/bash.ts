@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import type { BashCommandOutput, Tool } from "../types.js";
 import { Type } from "@google/genai";
+import { TOOL_OUTPUT_LIMITS, truncateToolOutput } from "./utils.js";
 
 const execAsync = promisify(exec);
 
@@ -51,7 +52,7 @@ export const bashTool: Tool = {
     }
     const result = await runBashCommand(args.command);
     return {
-      content: [result.stdout],
+      content: [truncateToolOutput(result.stdout, TOOL_OUTPUT_LIMITS.bash)],
       isError: result.isError,
     };
   },

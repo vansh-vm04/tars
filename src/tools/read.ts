@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Tool } from "../types.js";
 import { Type } from "@google/genai";
+import { TOOL_OUTPUT_LIMITS, truncateToolOutput } from "./utils.js";
 
 export const readTool: Tool = {
   name: "read",
@@ -15,7 +16,7 @@ export const readTool: Tool = {
     const path = args.path;
     return new Promise((resolve, reject) => {
       readFile(path, "utf8")
-        .then((data) => resolve({ content: data.split("\n"), isError: false }))
+        .then((data) => resolve({ content: [truncateToolOutput(data, TOOL_OUTPUT_LIMITS.read)], isError: false }))
         .catch((err) =>
           reject({
             content: [`Error reading file: ${err.message}`],

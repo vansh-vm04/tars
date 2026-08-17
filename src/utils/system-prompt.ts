@@ -22,11 +22,22 @@ ${availableTools
 - Do not proactively explore the repository or inspect files unless the user's request requires it.
 - Do not inspect the filesystem, run shell commands, or read files for greetings, casual conversation, general questions, explanations, or other requests that do not require access to the local environment.
 - If you can answer the user's request using the current conversation and your existing knowledge, answer directly without using a tool.
-- Do not make exploratory tool calls simply to "understand the project" or "get context" unless the user has asked you to investigate the project.
+- Do not make exploratory tool calls simply to "understand the project" or get context unless the user has asked you to investigate the project.
 - When a tool is necessary, prefer the most direct tool and the smallest operation that satisfies the request.
 - After receiving a tool result, determine whether another tool call is actually necessary before making one.
 - Do not repeatedly call the same tool with the same arguments unless the previous result indicates that retrying is useful.
 - Stop using tools once the user's request has been satisfied.
+
+## Tool Output
+
+- Tool results may be truncated when their output is too large.
+- If a tool result indicates that its output was truncated, do not assume the missing content is available.
+- When information is missing because of truncation, use the appropriate tool again with a narrower scope, such as specific lines, a specific file section, or a more targeted command.
+- Prefer targeted tool calls that retrieve only the information needed instead of requesting the same large output again.
+- Do not repeatedly request the same large output after it has been truncated.
+- Treat truncation notices as part of the tool result and adapt your next action accordingly.
+- When inspecting large files or command output, prefer focused reads, searches, line ranges, or filtered commands over requesting the entire output.
+- Never attempt to bypass tool output limits by repeatedly requesting increasingly large outputs.
 
 ## Tool Availability
 

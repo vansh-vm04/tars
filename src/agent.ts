@@ -8,9 +8,7 @@ import {
   type SessionMessageEntry,
   type Session,
 } from "./types.js";
-import { toAgentMessage } from "./utils/common.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
-import chalk from "chalk";
 
 const TARS_MAX_CONTEXT_WINDOW = 200_000;
 
@@ -82,31 +80,20 @@ export class Agent {
         userMessage,
       );
     }
-    if (this.contextManager.shouldCompact(this.messagesList)) {
-      console.log(chalk.yellowBright("\n\n => Compacting conversation...\n\n"));
-      const compacted = await this.contextManager.compact(
-        this.messagesList,
-        this.provider,
-        this.model,
-      );
-      this.messagesList = compacted.updatedMessages;
-      await this.sessionManager.saveMessage([compacted.compactionEntry]);
-    }
-    const response = await runAgentLoop(
-      this.model,
-      this.provider,
+    const response = await runAgentLoop({
+      model: this.model,
+      provider: this.provider,
       userMessage,
-      {
-        systemPrompt: SYSTEM_PROMPT,
-        messages: this.messagesList.map(toAgentMessage),
-        tools: this.toolsList,
-      },
-    );
+      systemPrompt: SYSTEM_PROMPT,
+      messages: this.messagesList,
+      tools: this.toolsList,
+      shouldCompact: (messages) => this.contextManager.shouldCompact(messages),
+      compact: (messages) =>
+        this.contextManager.compact(messages, this.provider, this.model),
+      saveMessage: (messages) => this.sessionManager.saveMessage(messages),
+    });
 
-    const savedMessages = await this.sessionManager.saveMessage(
-      response.newMessages,
-    );
-    this.messagesList = [...this.messagesList, ...savedMessages];
+    this.messagesList = response.updatedMessages;
 
     return { message: response.finalResponse || "", isError: response.isError };
   }

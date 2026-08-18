@@ -10,10 +10,18 @@ export interface Tool {
   execute: (args: Record<string, any>) => Promise<ToolExecutionResult>;
 }
 
-export interface Context {
+export interface AgentLoopContext {
+  model: string;
+  provider: Provider;
+  userMessage: string;
   systemPrompt: string;
-  messages: AgentMessage[];
+  messages: SessionMessageEntry[];
   tools?: Tool[];
+  shouldCompact: (messages: SessionMessageEntry[]) => boolean;
+  compact: (messages: SessionMessageEntry[]) => Promise<CompactionResult>;
+  saveMessage: (
+    messages: (AgentMessage | SessionMessageEntry)[],
+  ) => Promise<SessionMessageEntry[]>;
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
@@ -181,7 +189,7 @@ export type CompactionResult = {
 
 export type AgentLoopResponse = {
   finalResponse: string;
-  newMessages: AgentMessage[];
+  updatedMessages: SessionMessageEntry[];
   isError: boolean;
 };
 

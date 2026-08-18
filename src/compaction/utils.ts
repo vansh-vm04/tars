@@ -2,6 +2,7 @@ import type { AgentMessage, LLMInput, MessageContent, SessionMessageEntry } from
 import { toAgentMessage } from "../utils/common.js";
 
 const TOOL_RESULT_MAX_CHARS = 2000;
+const KEEP_RECENT_TOKENS = 20_000;
 
 export const SUMMARIZATION_SYSTEM_PROMPT = `You are a context summarization assistant. Your task is to read a conversation between a user and an AI assistant, then produce a structured summary following the exact format specified.
 
@@ -125,7 +126,7 @@ export function serializeConversation(messages: AgentMessage[]): string {
   return parts.join("\n\n");
 }
 
-export function contentText(
+function contentText(
   content: string | readonly MessageContent[],
   separator = "\n",
 ): string {
@@ -149,8 +150,6 @@ function truncateForSummary(text: string, maxChars: number): string {
   const truncatedChars = text.length - maxChars;
   return `${text.slice(0, maxChars)}\n\n[... ${truncatedChars} more characters truncated]`;
 }
-
-const KEEP_RECENT_TOKENS = 20_000;
 
 export function splitForCompaction(messages: SessionMessageEntry[]) {
   let tokenCount = 0;
@@ -182,7 +181,7 @@ export function estimateTokenCount(messages: AgentMessage[]): number {
   return Math.ceil((messageTokens) / 4);
 }
 
-export function messageToText(message: AgentMessage): string {
+function messageToText(message: AgentMessage): string {
   switch (message.role) {
     case "user":
       return message.content.map((part) => part.text).join(" ");

@@ -1,27 +1,54 @@
 import { callLLM } from "./llm.js";
 import type {
+  AgentLoopContext,
   AgentLoopResponse,
-  AgentMessage,
-  Context,
   LLMResponse,
-  Provider,
+  SessionMessageEntry,
   ToolExecutionResult,
 } from "./types.js";
+import { toAgentMessage } from "./utils/common.js";
+import chalk from "chalk";
 
 export const runAgentLoop = async (
-  model: string,
-  provider: Provider,
-  userMessage: string,
-  context: Context,
+  context: AgentLoopContext,
 ): Promise<AgentLoopResponse> => {
-  let initialMessages: AgentMessage[] = context.messages || [];
-  let newMessages: AgentMessage[] = [];
-  let tools = context.tools || [];
-  let systemPrompt = context.systemPrompt;
+  let oldMessages: SessionMessageEntry[] = context.messages || [];
+  let newMessages: SessionMessageEntry[] = [];
+  const tools = context.tools || [];
+  const { model, provider, userMessage, systemPrompt } = context;
   let LLMResponse: LLMResponse | undefined;
 
-  // Add the initial user message to the messages array
+  const toAgentMessages = (entries: SessionMessageEntry[]) =>
+    entries.map(toAgentMessage);
+
+  const allMessages = () => [...oldMessages, ...newMessages];
+
+  const compactIfNeeded = async () => {
+    const messages = allMessages();
+    if (!context.shouldCompact(messages)) return;
+    console.log(chalk.yellowBright("\n\n => Compacting conversation...\n\n"));
+    const result = await context.compact(messages);
+    if (newMessages.length > 0) {
+      await context.saveMessage(newMessages);
+    }
+    await context.saveMessage([result.compactionEntry]);
+    oldMessages = result.updatedMessages;
+    newMessages = [];
+  };
+
+  const persistNewMessages = async (): Promise<SessionMessageEntry[]> => {
+    if (newMessages.length === 0) return [];
+    const saved = await context.saveMessage(newMessages);
+    newMessages = [];
+    return saved;
+  };
+
+  // Initial compaction of the carried-over conversation before the turn
+  await compactIfNeeded();
+
   newMessages.push({
+    type: "message",
+    id: crypto.randomUUID(),
     role: "user",
     content: [{ type: "text", text: userMessage }],
     timestamp: Date.now(),
@@ -31,14 +58,15 @@ export const runAgentLoop = async (
     LLMResponse = await callLLM(provider, {
       model,
       systemPrompt,
-      messages: [...initialMessages, ...newMessages],
+      messages: toAgentMessages(allMessages()),
       tools,
     });
 
     if (LLMResponse.isError) {
+      const savedMessages = await persistNewMessages();
       return {
         finalResponse: LLMResponse.error,
-        newMessages,
+        updatedMessages: [...oldMessages, ...savedMessages],
         isError: true,
       };
     }
@@ -47,6 +75,8 @@ export const runAgentLoop = async (
 
     if (toolCalls.length > 0) {
       newMessages.push({
+        type: "message",
+        id: crypto.randomUUID(),
         role: "assistant",
         content: LLMResponse?.parts ?? [],
       });
@@ -54,6 +84,8 @@ export const runAgentLoop = async (
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
           newMessages.push({
+            type: "message",
+            id: crypto.randomUUID(),
             role: "toolResult",
             toolCallId: toolCall.id || "",
             toolName: toolCall.name,
@@ -76,6 +108,8 @@ export const runAgentLoop = async (
           };
         }
         newMessages.push({
+          type: "message",
+          id: crypto.randomUUID(),
           role: "toolResult",
           toolCallId: toolCallId,
           toolName: tool.name,
@@ -84,9 +118,14 @@ export const runAgentLoop = async (
           timestamp: Date.now(),
         });
       }
+
+      // Check and compact the conversation after all tool calls and results
+      await compactIfNeeded();
     } else {
       // no tool calls, return the response
       newMessages.push({
+        type: "message",
+        id: crypto.randomUUID(),
         role: "assistant",
         content: LLMResponse?.parts ?? [],
       });
@@ -94,9 +133,11 @@ export const runAgentLoop = async (
     }
   }
 
+  const savedMessages = await persistNewMessages();
+
   return {
     finalResponse: LLMResponse?.content?.text || "",
-    newMessages,
+    updatedMessages: [...oldMessages, ...savedMessages],
     isError: false,
   };
 };

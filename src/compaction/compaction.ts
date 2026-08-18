@@ -4,7 +4,6 @@ import {
   splitForCompaction,
 } from "./utils.js";
 import type {
-  AgentMessage,
   CompactionResult,
   Provider,
   SessionMessageEntry,

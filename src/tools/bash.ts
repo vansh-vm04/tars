@@ -12,20 +12,27 @@ async function runBashCommand(command: string): Promise<BashCommandOutput> {
       cwd: process.cwd(),
       maxBuffer: 10 * 1024 * 1024,
     });
-    
-    if (stderr) {
-      return {
-        stdout: stderr.trim(),
-        isError: true,
-      };
-    }
+
     return {
-      stdout: stdout.trim(),
+      stdout: [
+        stdout ? `stdout:\n${stdout.trim()}` : "",
+        stderr ? `stderr:\n${stderr.trim()}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       isError: false,
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
-      stdout: `Error executing command "${command}": ${error}`,
+      stdout: [
+        `Command failed: ${command}`,
+        `Exit code: ${error?.code ?? "unknown"}`,
+        error?.stdout ? `stdout:\n${error.stdout.trim()}` : "",
+        error?.stderr ? `stderr:\n${error.stderr.trim()}` : "",
+        error?.message ? `error:\n${error.message}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       isError: true,
     };
   }
@@ -36,7 +43,8 @@ export const bashTool: Tool = {
   description:
     "Execute a shell command in the current working directory. " +
     "Use this to explore files, search the codebase, run programs, " +
-    "and perform other shell operations.",
+    "and perform other shell operations." +
+    "If the requested output is too large, the result may be truncated.",
   parameters: {
     command: {
       type: Type.STRING,

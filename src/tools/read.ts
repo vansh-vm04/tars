@@ -7,7 +7,8 @@ export const readTool: Tool = {
   name: "read",
   description:
     "Read the contents of a file. Supports text files only. " +
-    "Optionally provide offset and limit to read a specific line range of the file.",
+    "Optionally provide offset and limit to read a specific line range of the file." +
+    "If the requested output is too large, the result may be truncated.",
   parameters: {
     path: {
       type: Type.STRING,

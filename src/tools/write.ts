@@ -11,7 +11,8 @@ export const writeTool: Tool = {
   parameters: {
     path: {
       type: Type.STRING,
-      description: "Path of the file, relative to the current working directory.",
+      description:
+        "Path of the file, relative to the current working directory.",
     },
     content: {
       type: Type.STRING,
@@ -29,9 +30,14 @@ export const writeTool: Tool = {
         content: [`Successfully wrote ${args.path}`],
         isError: false,
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
-        content: [`Error writing ${args.path}: ${error}`],
+        content: [
+          `Failed to write file: ${args.path}`,
+          `Resolved path: ${resolve(process.cwd(), args.path)}`,
+          `Error code: ${error?.code ?? "unknown"}`,
+          `Error message: ${error?.message ?? String(error)}`,
+        ],
         isError: true,
       };
     }

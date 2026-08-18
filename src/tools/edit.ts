@@ -13,7 +13,8 @@ export const editTool: Tool = {
   parameters: {
     path: {
       type: Type.STRING,
-      description: "Path of the file to edit, relative to the current working directory.",
+      description:
+        "Path of the file to edit, relative to the current working directory.",
     },
     oldText: {
       type: Type.STRING,
@@ -36,8 +37,10 @@ export const editTool: Tool = {
       if (occurrences === 0) {
         return {
           content: [
-            `Error: oldText was not found in ${args.path}. ` +
-              "Read the file and use the exact existing text.",
+            `Edit failed: oldText was not found.`,
+            `File: ${args.path}`,
+            `Resolved path: ${path}`,
+            `Action: Read the file and use the exact existing text for oldText.`,
           ],
           isError: true,
         };
@@ -46,8 +49,10 @@ export const editTool: Tool = {
       if (occurrences > 1) {
         return {
           content: [
-            `Error: oldText occurs ${occurrences} times in ${args.path}. ` +
-              "Provide a larger, more specific section so the edit is unambiguous.",
+            `Edit failed: oldText is ambiguous.`,
+            `File: ${args.path}`,
+            `Occurrences: ${occurrences}`,
+            `Action: Provide a larger, more specific section of existing text.`,
           ],
           isError: true,
         };
@@ -61,9 +66,14 @@ export const editTool: Tool = {
         content: [`Successfully edited ${args.path}`],
         isError: false,
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
-        content: [`Error editing ${args.path}: ${error}`],
+        content: [
+          `Failed to edit file: ${args.path}`,
+          `Resolved path: ${resolve(process.cwd(), args.path)}`,
+          `Error code: ${error?.code ?? "unknown"}`,
+          `Error message: ${error?.message ?? String(error)}`,
+        ],
         isError: true,
       };
     }

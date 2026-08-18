@@ -37,6 +37,7 @@ ${availableTools
 - Do not repeatedly request the same large output after it has been truncated.
 - Treat truncation notices as part of the tool result and adapt your next action accordingly.
 - When inspecting large files or command output, prefer focused reads, searches, line ranges, or filtered commands over requesting the entire output.
+- The read tool accepts \`offset\` (1-indexed starting line) and \`limit\` (maximum number of lines). Use these to read a file, or a specific section of a large file, in chunks that fit within the output limit.
 - Never attempt to bypass tool output limits by repeatedly requesting increasingly large outputs.
 
 ## Tool Availability

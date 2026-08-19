@@ -21,7 +21,7 @@ export const runAgentLoop = async (
   const toAgentMessages = (entries: SessionMessageEntry[]) =>
     entries.map(toAgentMessage);
 
-  const allMessages = () => [...oldMessages, ...newMessages];
+  const allMessages = () => [...oldMessages, ...savedMessages, ...newMessages];
 
   const compactIfNeeded = async () => {
     const messages = allMessages();

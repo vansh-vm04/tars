@@ -35,7 +35,7 @@ export function handleAgentEvent(event: AgentEvent): void {
       break;
     case "error":
       process.stdout.write(chalk.redBright("\n\n> "));
-      process.stdout.write(event.error.message);
+      process.stdout.write(event.error);
       process.stdout.write("\n\n ");
       process.stdout.write(
         `> Tip: You can change the model by entering ${chalk.yellowBright("/model")} command.\n\n`,

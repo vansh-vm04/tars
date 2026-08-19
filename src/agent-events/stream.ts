@@ -72,7 +72,7 @@ export class AgentEventStream {
       }
 
       case "error":
-        this.streamError = event.error.message;
+        this.streamError = event.error;
         this.finish("error");
         this.emit({ type: "error", error: event.error });
         break;
@@ -84,7 +84,7 @@ export class AgentEventStream {
       error instanceof Error ? error : new Error("Unknown stream error.");
     this.streamError = err.message;
     this.finish("error");
-    this.emit({ type: "error", error: err });
+    this.emit({ type: "error", error: err.message });
   }
 
   /** Finalizes any state left open if the stream ended without a finish event. */

@@ -235,7 +235,7 @@ export type AgentEvent =
     }
   | {
       type: "error";
-      error: Error;
+      error: string;
     };
 
 export type LLMStreamEvent =

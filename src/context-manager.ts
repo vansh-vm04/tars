@@ -11,7 +11,6 @@ export class ContextManager {
 
   shouldCompact(messages: SessionMessageEntry[]): boolean {
     const tokenCount = this.estimateTokenCount(messages.map(toAgentMessage));
-    console.log(`Current token count: ${tokenCount}`);
     return tokenCount >= this.contextWindow * this.compactionThreshold;
   }
 

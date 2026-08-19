@@ -1,13 +1,8 @@
 import readLine from "node:readline/promises";
 import type { Command } from "../types.js";
 import type { Agent } from "../agent.js";
-import { exitCommand } from "./exit.js";
-import { newCommand } from "./new.js";
-import { modelCommand } from "./model.js";
-import { sessionCommand } from "./session.js";
+import { availableCommands } from "./index.js";
 import chalk from "chalk";
-
-const commands = [modelCommand, newCommand, sessionCommand, exitCommand];
 
 export const helpCommand: Command = {
   name: "/help",
@@ -18,7 +13,7 @@ export const helpCommand: Command = {
   ) {
     console.log(chalk.blueBright("\n\nAvailable commands:\n"));
 
-    for (const command of commands) {
+    for (const command of availableCommands) {
       console.log(`-> ${chalk.green(command.name)} - ${command.description}`);
     }
     console.log(chalk.blueBright("\n\nType a command to execute it.\n"));

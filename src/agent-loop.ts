@@ -14,6 +14,7 @@ export const runAgentLoop = async (
 ): Promise<AgentLoopResponse> => {
   let oldMessages: SessionMessageEntry[] = context.messages || [];
   let newMessages: SessionMessageEntry[] = [];
+  let savedMessages: SessionMessageEntry[] = [];
   const tools = context.tools || [];
   const { model, provider, userMessage, systemPrompt, onEvent } = context;
 
@@ -33,12 +34,14 @@ export const runAgentLoop = async (
     await context.saveMessage([result.compactionEntry]);
     oldMessages = result.updatedMessages;
     newMessages = [];
+    savedMessages = [];
   };
 
   const persistNewMessages = async (): Promise<SessionMessageEntry[]> => {
     if (newMessages.length === 0) return [];
     const saved = await context.saveMessage(newMessages);
     newMessages = [];
+    savedMessages.push(...saved);
     return saved;
   };
 
@@ -77,7 +80,7 @@ export const runAgentLoop = async (
     const turn = await streamTurn();
 
     if (turn.isError) {
-      const savedMessages = await persistNewMessages();
+      await persistNewMessages();
       return {
         finalResponse: turn.error,
         updatedMessages: [...oldMessages, ...savedMessages],
@@ -92,6 +95,7 @@ export const runAgentLoop = async (
         role: "assistant",
         content: turn.parts,
       });
+      await persistNewMessages();
       for (const toolCall of turn.toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
@@ -105,6 +109,7 @@ export const runAgentLoop = async (
             isError: true,
             timestamp: Date.now(),
           });
+          await persistNewMessages();
           continue;
         }
         const toolCallId = toolCall.id || `${tool.name}-${Date.now()}`;
@@ -141,6 +146,7 @@ export const runAgentLoop = async (
           isError: result.isError,
           timestamp: Date.now(),
         });
+        await persistNewMessages();
       }
 
       // Check and compact the conversation after all tool calls and results
@@ -158,7 +164,7 @@ export const runAgentLoop = async (
     }
   }
 
-  const savedMessages = await persistNewMessages();
+  await persistNewMessages();
 
   return {
     finalResponse,

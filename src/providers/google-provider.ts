@@ -33,11 +33,13 @@ const resolveRetryAfterMs = (error: any) => {
   return match ? Math.ceil(Number(match[1]) * 1000) : 60000;
 };
 
-const parseError = (error: any): any => {
+const parseError = async (error: any): Promise<any> => {
   try {
-    return JSON.parse(error?.message ?? "{}").error ?? error;
+    const parsed = await JSON.parse(error.message).error;
+    const errorDetails = await JSON.parse(parsed.message).error;
+    return errorDetails;
   } catch {
-    return error;
+    return "An unknown error occurred.";
   }
 };
 
@@ -121,7 +123,9 @@ const toGeminiParts = (content: MessageContent[]): Part[] =>
           name: part.name,
           args: part.arguments,
         },
-        thoughtSignature: part.thoughtSignature!,
+        ...(part.thoughtSignature !== undefined && {
+          thoughtSignature: part.thoughtSignature,
+        }),
       };
     }
 
@@ -154,7 +158,7 @@ export class GoogleProvider {
     try {
       interaction = await this.ai.models.generateContent(params);
     } catch (error: any) {
-      const parsed = parseError(error);
+      const parsed = await parseError(error);
       if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
         return {
           content: null,
@@ -193,7 +197,7 @@ export class GoogleProvider {
     if (!input.messages.length) {
       yield {
         type: "error",
-        error: new Error("No messages to send."),
+        error: "No messages to send.",
       };
       return;
     }
@@ -204,11 +208,11 @@ export class GoogleProvider {
     try {
       stream = await this.ai.models.generateContentStream(params);
     } catch (error: any) {
-      const parsed = parseError(error);
+      const parsed = await parseError(error);
       if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
         yield {
           type: "error",
-          error: new Error(parsed.message ?? "Resource exhausted."),
+          error: parsed?.message ?? "Resource exhausted.",
           isRetryable: true,
           retryAfterMs: resolveRetryAfterMs(parsed),
         };
@@ -216,7 +220,7 @@ export class GoogleProvider {
       }
       yield {
         type: "error",
-        error: new Error(parsed?.message ?? "Unknown error starting stream."),
+        error: parsed?.message ?? "Unknown error starting stream.",
       };
       return;
     }
@@ -294,11 +298,11 @@ export class GoogleProvider {
         }
       }
     } catch (error: any) {
-      const parsed = parseError(error);
+      const parsed = await parseError(error);
       if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
         yield {
           type: "error",
-          error: new Error(parsed.message ?? "Resource exhausted."),
+          error: parsed?.message ?? "Resource exhausted.",
           isRetryable: true,
           retryAfterMs: resolveRetryAfterMs(parsed),
         };
@@ -306,7 +310,7 @@ export class GoogleProvider {
       }
       yield {
         type: "error",
-        error: new Error(parsed?.message ?? "Unknown stream error."),
+        error: parsed?.message ?? "Unknown stream error.",
       };
       return;
     }

@@ -10,7 +10,10 @@ import { loadConfig } from "./storage/config.js";
 import { availableCommands } from "./commands/index.js";
 import { handleAgentEvent } from "./agent-events/utils.js";
 
-const rl = readLine.createInterface({ input, output });
+const rl = readLine.createInterface({
+  input: input as unknown as NodeJS.ReadableStream,
+  output: output as unknown as NodeJS.WritableStream,
+});
 
 await startAnimation();
 showBanner();
@@ -33,16 +36,19 @@ agent.onEvent(handleAgentEvent);
 console.log(chalk.yellowBright("\n\n => How can i help you today? \n\n"));
 
 while (true) {
-  const userInput = (await rl.question("> ")).trim();
+  let userInput: string;
+  try {
+    userInput = (await rl.question("> ")).trim();
+  } catch {
+    break; // stdin closed / EOF
+  }
 
   if (!userInput) {
     continue;
   }
 
   if (userInput.startsWith("/")) {
-    const command = availableCommands.find(
-      (cmd) => cmd.name == userInput,
-    );
+    const command = availableCommands.find((cmd) => cmd.name === userInput);
 
     if (command) {
       await command.execute(rl, agent);
@@ -51,9 +57,10 @@ while (true) {
     }
   }
 
-  const response = await agent.prompt(userInput);
+  await agent.prompt(userInput);
 
   // Output is streamed live via agent events handled by handleAgentEvent.
   // No terminal output is done here.
-  void response;
 }
+
+rl.close();

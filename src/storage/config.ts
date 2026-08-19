@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { CONFIG_FILE, TARS_DIR } from "./path.js";
 import readLine from "node:readline/promises";
 import type { Config } from "../types.js";
-import { availableModels } from "../providers/models.js";
+import { getAvailableModels } from "../providers/models.js";
 import type { Agent } from "../agent.js";
 
 export async function loadConfig(rl: readLine.Interface): Promise<Config> {
@@ -23,10 +23,12 @@ export const askUserForModel = async (
   rl: readLine.Interface,
   agent?: Agent,
 ): Promise<Config> => {
+  const models = await getAvailableModels();
+
   while (true) {
     const input = await rl.question(
       chalk.greenBright(
-        `\n\nSelect a model:\n${availableModels
+        `\n\nSelect a model:\n${models
           .map((model, i) => `${i + 1}. ${model.name} (${model.id})`)
           .join("\n")}\n\n`,
       ),
@@ -34,8 +36,8 @@ export const askUserForModel = async (
 
     const index = Number.parseInt(input, 10) - 1;
 
-    if (index >= 0 && index < availableModels.length) {
-      const selectedModel = availableModels[index]!;
+    if (index >= 0 && index < models.length) {
+      const selectedModel = models[index]!;
       const config: Config = {
         provider: selectedModel.provider,
         model: selectedModel.id,

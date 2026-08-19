@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { AgentEvent, StopReason } from "../types.js"
+import type { AgentEvent, StopReason } from "../types.js";
 
 export function handleAgentEvent(event: AgentEvent): void {
   switch (event.type) {

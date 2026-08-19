@@ -35,7 +35,11 @@ export class SessionManager {
       throw new Error("Cannot create a session from empty input");
     }
 
-    const sessionName = await this.generateSessionName(provider, firstMessage);
+    const sessionName = await this.generateSessionName(
+      provider,
+      config.model,
+      firstMessage,
+    );
     const session = await createSession({ ...config, name: sessionName });
     await addSessionToList(session);
 
@@ -78,10 +82,11 @@ export class SessionManager {
 
   private async generateSessionName(
     provider: Provider,
+    model: string,
     message: string,
   ): Promise<string> {
     const response = await provider.chat({
-      model: "gemini-3.1-flash-lite",
+      model,
       systemPrompt: `
         Generate a short, plain-text title for this conversation.
 

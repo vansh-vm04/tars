@@ -41,20 +41,6 @@ export const addSessionToList = async (session: Session) => {
   await appendFile(listFilePath, JSON.stringify(session) + "\n", "utf8");
 };
 
-export const addMessageToSession = async (
-  sessionId: string,
-  message: AgentMessage,
-) => {
-  const filePath = `${SESSIONS_DIR}/ses_${sessionId}.jsonl`;
-
-  await appendFile(
-    filePath,
-    JSON.stringify({ type: "message", id: generateUniqueId(), ...message }) +
-      "\n",
-    "utf8",
-  );
-};
-
 export const addMessagesToSession = async (
   sessionId: string,
   messages: (AgentMessage | SessionMessageEntry)[],

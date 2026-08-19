@@ -1,4 +1,5 @@
 import {
+  SUMMARIZATION_PROMPT,
   SUMMARIZATION_SYSTEM_PROMPT,
   serializeConversation,
   splitForCompaction,
@@ -20,6 +21,10 @@ export async function compact(
     messagesToCompact.map(toAgentMessage),
   ).trim();
 
+  const prompt =
+    [summaryPrompt, SUMMARIZATION_PROMPT].filter(Boolean).join("\n\n") ||
+    "Summarize the prior conversation state.";
+
   const response = await provider.chat({
     model,
     systemPrompt: SUMMARIZATION_SYSTEM_PROMPT,
@@ -29,7 +34,7 @@ export async function compact(
         content: [
           {
             type: "text",
-            text: summaryPrompt || "Summarize the prior conversation state.",
+            text: prompt,
           },
         ],
         timestamp: Date.now(),

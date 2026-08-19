@@ -64,10 +64,6 @@ const normalizeModel = (
     rawModel?.limit?.output ?? rawModel?.max_tokens ?? rawModel?.maxTokens ?? 0,
   );
 
-  console.log(
-    `Normalized model: ${id}, contextWindow: ${contextWindow}, maxTokens: ${maxTokens}`,
-  );
-
   return {
     id: String(id),
     name: String(rawModel?.name ?? id),
@@ -100,5 +96,10 @@ const loadModelsFromDev = async (): Promise<ModelDefinition[]> => {
   return models.length > 0 ? models : fallbackModels;
 };
 
-export const availableModels: ModelDefinition[] =
-  await loadModelsFromDev().catch(() => fallbackModels);
+let cachedModels: ModelDefinition[] | null = null;
+
+export const getAvailableModels = async (): Promise<ModelDefinition[]> => {
+  if (cachedModels) return cachedModels;
+  cachedModels = await loadModelsFromDev().catch(() => fallbackModels);
+  return cachedModels;
+};

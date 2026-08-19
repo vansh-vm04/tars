@@ -1,7 +1,7 @@
 import type { Schema, Part } from "@google/genai";
-import readLine from "node:readline/promises";
+import type readLine from "node:readline/promises";
 import type { Agent } from "./agent.js";
-import { GoogleProvider } from "./providers/google-provider.js";
+import type { GoogleProvider } from "./providers/google-provider.js";
 
 export interface Tool {
   name: string;
@@ -254,7 +254,7 @@ export type LLMStreamEvent =
     }
   | {
       type: "error";
-      error: Error;
+      error: string;
       isRetryable?: boolean;
       retryAfterMs?: number;
     };

@@ -1,12 +1,36 @@
 import type {
   AgentMessage,
+  MessageContent,
   SessionEntryType,
   SessionMessageEntry,
+  TextContent,
 } from "../types.js";
 
 export const toAgentMessage = (entry: SessionMessageEntry): AgentMessage => {
-  const { type: _type, id: _id, ...message } = entry;
-  return message as AgentMessage;
+  switch (entry.role) {
+    case "user":
+      return {
+        role: "user",
+        content: entry.content as TextContent[],
+        timestamp: entry.timestamp ?? Date.now(),
+      };
+
+    case "assistant":
+      return {
+        role: "assistant",
+        content: entry.content as MessageContent[],
+      };
+
+    case "toolResult":
+      return {
+        role: "toolResult",
+        toolCallId: entry.toolCallId ?? "",
+        toolName: entry.toolName ?? "",
+        content: entry.content as string[],
+        isError: entry.isError ?? false,
+        timestamp: entry.timestamp ?? Date.now(),
+      };
+  }
 };
 
 export const toSessionMessageEntry = (

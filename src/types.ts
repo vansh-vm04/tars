@@ -221,11 +221,7 @@ export type AgentEvent =
       type: "tool-call-start";
       id: string;
       name: string;
-    }
-  | {
-      type: "tool-call-delta";
-      id: string;
-      arguments: string;
+      arguments: Record<string, unknown>;
     }
   | {
       type: "tool-call-end";

@@ -110,6 +110,12 @@ export const runAgentLoop = async (
         const toolCallId = toolCall.id || `${tool.name}-${Date.now()}`;
         let result: ToolExecutionResult;
         try {
+          onEvent?.({
+            type: "tool-call-start",
+            id: toolCallId,
+            name: tool.name,
+            arguments: toolCall.arguments,
+          });
           result = await tool.execute(toolCall.arguments);
         } catch (err) {
           result = {
@@ -119,6 +125,12 @@ export const runAgentLoop = async (
             isError: true,
           };
         }
+        onEvent?.({
+          type: "tool-call-end",
+          id: toolCallId,
+          name: tool.name,
+          arguments: toolCall.arguments,
+        });
         newMessages.push({
           type: "message",
           id: crypto.randomUUID(),

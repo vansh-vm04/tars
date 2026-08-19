@@ -58,19 +58,9 @@ export class AgentEventStream {
               thoughtSignature: event.thoughtSignature,
             }),
           });
-          this.emit({
-            type: "tool-call-start",
-            id: event.id,
-            name: event.name,
-          });
         }
         const call = this.toolCalls.get(event.id)!;
         call.args = event.arguments;
-        this.emit({
-          type: "tool-call-delta",
-          id: event.id,
-          arguments: call.args,
-        });
         break;
       }
 
@@ -178,13 +168,6 @@ export class AgentEventStream {
 
   private closeToolCall(): void {
     if (this.lastToolCallId) {
-      const call = this.toolCalls.get(this.lastToolCallId)!;
-      this.emit({
-        type: "tool-call-end",
-        id: this.lastToolCallId,
-        name: call.name,
-        arguments: parseArgs(call.args),
-      });
       this.lastToolCallId = null;
     }
   }

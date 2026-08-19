@@ -6,6 +6,7 @@ import {
   type Part,
   type Tool,
   type GenerateContentResponse,
+  ThinkingLevel,
 } from "@google/genai";
 import type {
   LLMInput,
@@ -16,6 +17,7 @@ import type {
   ThinkingContent,
   ToolCall,
   LLMChatResponse,
+  LLMStreamEvent,
 } from "../types.js";
 
 const resolveRetryAfterMs = (error: any) => {
@@ -29,6 +31,14 @@ const resolveRetryAfterMs = (error: any) => {
   const match = retryDelay.match(/^([\d.]+)s$/);
 
   return match ? Math.ceil(Number(match[1]) * 1000) : 60000;
+};
+
+const parseError = (error: any): any => {
+  try {
+    return JSON.parse(error?.message ?? "{}").error ?? error;
+  } catch {
+    return error;
+  }
 };
 
 const normalizeMessageContent = (
@@ -137,37 +147,14 @@ export class GoogleProvider {
       };
     }
 
-    const tools: Tool[] = input.tools.map((tool) => ({
-      functionDeclarations: [
-        {
-          name: tool.name,
-          description: tool.description,
-          parameters: {
-            type: Type.OBJECT,
-            properties: tool.parameters,
-          },
-        },
-      ],
-    }));
-
-    const params: GenerateContentParameters = {
-      model: input.model,
-      contents: this.buildContents(input.messages),
-      config: {
-        systemInstruction: input.systemPrompt,
-        ...(tools.length && { tools }),
-        thinkingConfig: {
-          includeThoughts: true,
-        },
-      },
-    };
+    const params = this.buildParams(input);
 
     let interaction: GenerateContentResponse;
 
     try {
       interaction = await this.ai.models.generateContent(params);
     } catch (error: any) {
-      const parsed = JSON.parse(error.message).error;
+      const parsed = parseError(error);
       if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
         return {
           content: null,
@@ -196,6 +183,160 @@ export class GoogleProvider {
       ),
       isError: false,
       error: null,
+    };
+  };
+
+  chatStream = async function* (
+    this: GoogleProvider,
+    input: LLMInput,
+  ): AsyncGenerator<LLMStreamEvent, void, unknown> {
+    if (!input.messages.length) {
+      yield {
+        type: "error",
+        error: new Error("No messages to send."),
+      };
+      return;
+    }
+
+    const params = this.buildParams(input);
+    let stream: AsyncGenerator<GenerateContentResponse>;
+
+    try {
+      stream = await this.ai.models.generateContentStream(params);
+    } catch (error: any) {
+      const parsed = parseError(error);
+      if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
+        yield {
+          type: "error",
+          error: new Error(parsed.message ?? "Resource exhausted."),
+          isRetryable: true,
+          retryAfterMs: resolveRetryAfterMs(parsed),
+        };
+        return;
+      }
+      yield {
+        type: "error",
+        error: new Error(parsed?.message ?? "Unknown error starting stream."),
+      };
+      return;
+    }
+
+    let pendingFunctionCall: {
+      id: string;
+      name: string;
+      arguments: string;
+      thoughtSignature?: string;
+    } | null = null;
+
+    try {
+      for await (const chunk of stream) {
+        const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+
+        for (const part of parts) {
+          if (part.thought === true) {
+            if (part.text) {
+              yield { type: "thinking-delta", text: part.text };
+            }
+            continue;
+          }
+
+          if (part.functionCall) {
+            const id = part.functionCall.id ?? "";
+            const name = part.functionCall.name ?? "";
+
+            if (
+              !pendingFunctionCall ||
+              pendingFunctionCall.id !== id ||
+              pendingFunctionCall.name !== name
+            ) {
+              pendingFunctionCall = {
+                id,
+                name,
+                arguments: "",
+              };
+            }
+
+            if (part.thoughtSignature !== undefined) {
+              pendingFunctionCall.thoughtSignature = part.thoughtSignature;
+            }
+
+            if (part.functionCall.args) {
+              pendingFunctionCall.arguments = JSON.stringify(
+                part.functionCall.args,
+              );
+            } else {
+              pendingFunctionCall.arguments += part.text ?? "";
+            }
+
+            yield {
+              type: "function-call-delta",
+              id: pendingFunctionCall.id,
+              name: pendingFunctionCall.name,
+              arguments: pendingFunctionCall.arguments,
+              ...(pendingFunctionCall.thoughtSignature !== undefined && {
+                thoughtSignature: pendingFunctionCall.thoughtSignature,
+              }),
+            };
+            continue;
+          }
+
+          if (part.text) {
+            yield { type: "text-delta", text: part.text };
+          }
+        }
+
+        const finishReason = chunk.candidates?.[0]?.finishReason;
+        if (finishReason && finishReason !== "FINISH_REASON_UNSPECIFIED") {
+          yield {
+            type: "finish",
+            reason: finishReason,
+          };
+        }
+      }
+    } catch (error: any) {
+      const parsed = parseError(error);
+      if (parsed?.status === "RESOURCE_EXHAUSTED" || parsed?.code === 429) {
+        yield {
+          type: "error",
+          error: new Error(parsed.message ?? "Resource exhausted."),
+          isRetryable: true,
+          retryAfterMs: resolveRetryAfterMs(parsed),
+        };
+        return;
+      }
+      yield {
+        type: "error",
+        error: new Error(parsed?.message ?? "Unknown stream error."),
+      };
+      return;
+    }
+  };
+
+  private buildParams = (input: LLMInput): GenerateContentParameters => {
+    const tools: Tool[] = input.tools.map((tool) => ({
+      functionDeclarations: [
+        {
+          name: tool.name,
+          description: tool.description,
+          parameters: {
+            type: Type.OBJECT,
+            properties: tool.parameters,
+          },
+        },
+      ],
+    }));
+
+    return {
+      model: input.model,
+      contents: this.buildContents(input.messages),
+      config: {
+        systemInstruction: input.systemPrompt,
+        ...(tools.length && { tools }),
+        thinkingConfig: {
+          includeThoughts: true,
+          thinkingLevel: ThinkingLevel.HIGH,
+        },
+      },
     };
   };
 

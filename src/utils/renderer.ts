@@ -20,9 +20,9 @@ marked.use(
   }) as any,
 );
 
-export default function renderMarkdown(text: string): string {
+export default function renderMarkdown(text: string): void {
   const normalized = normalizeMarkdown(text);
-  return marked.parse(normalized) as string;
+  process.stdout.write(marked.parse(normalized) as string);
 }
 
 function normalizeMarkdown(text: string): string {

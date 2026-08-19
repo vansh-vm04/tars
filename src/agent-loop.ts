@@ -1,12 +1,12 @@
-import { callLLM } from "./llm.js";
+import { callLLMStream } from "./llm.js";
 import type {
   AgentLoopContext,
   AgentLoopResponse,
-  LLMResponse,
   SessionMessageEntry,
   ToolExecutionResult,
 } from "./types.js";
 import { toAgentMessage } from "./utils/common.js";
+import { AgentEventStream } from "./agent-events/stream.js";
 import chalk from "chalk";
 
 export const runAgentLoop = async (
@@ -15,8 +15,7 @@ export const runAgentLoop = async (
   let oldMessages: SessionMessageEntry[] = context.messages || [];
   let newMessages: SessionMessageEntry[] = [];
   const tools = context.tools || [];
-  const { model, provider, userMessage, systemPrompt } = context;
-  let LLMResponse: LLMResponse | undefined;
+  const { model, provider, userMessage, systemPrompt, onEvent } = context;
 
   const toAgentMessages = (entries: SessionMessageEntry[]) =>
     entries.map(toAgentMessage);
@@ -43,6 +42,24 @@ export const runAgentLoop = async (
     return saved;
   };
 
+  const streamTurn = async () => {
+    const stream = new AgentEventStream(onEvent);
+    try {
+      for await (const event of callLLMStream(provider, {
+        model,
+        systemPrompt,
+        messages: toAgentMessages(allMessages()),
+        tools,
+      })) {
+        stream.push(event);
+      }
+      stream.end();
+    } catch (err) {
+      stream.error(err instanceof Error ? err : new Error("Unknown stream error."));
+    }
+    return stream.result();
+  };
+
   // Initial compaction of the carried-over conversation before the turn
   await compactIfNeeded();
 
@@ -54,33 +71,28 @@ export const runAgentLoop = async (
     timestamp: Date.now(),
   });
 
-  while (true) {
-    LLMResponse = await callLLM(provider, {
-      model,
-      systemPrompt,
-      messages: toAgentMessages(allMessages()),
-      tools,
-    });
+  let finalResponse = "";
 
-    if (LLMResponse.isError) {
+  while (true) {
+    const turn = await streamTurn();
+
+    if (turn.isError) {
       const savedMessages = await persistNewMessages();
       return {
-        finalResponse: LLMResponse.error,
+        finalResponse: turn.error,
         updatedMessages: [...oldMessages, ...savedMessages],
         isError: true,
       };
     }
 
-    const toolCalls = LLMResponse?.content?.toolCalls || [];
-
-    if (toolCalls.length > 0) {
+    if (turn.toolCalls.length > 0) {
       newMessages.push({
         type: "message",
         id: crypto.randomUUID(),
         role: "assistant",
-        content: LLMResponse?.parts ?? [],
+        content: turn.parts,
       });
-      for (const toolCall of toolCalls) {
+      for (const toolCall of turn.toolCalls) {
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
           newMessages.push({
@@ -98,7 +110,7 @@ export const runAgentLoop = async (
         const toolCallId = toolCall.id || `${tool.name}-${Date.now()}`;
         let result: ToolExecutionResult;
         try {
-          result = await tool.execute(toolCall.args);
+          result = await tool.execute(toolCall.arguments);
         } catch (err) {
           result = {
             content: [
@@ -127,8 +139,9 @@ export const runAgentLoop = async (
         type: "message",
         id: crypto.randomUUID(),
         role: "assistant",
-        content: LLMResponse?.parts ?? [],
+        content: turn.parts,
       });
+      finalResponse = turn.text;
       break;
     }
   }
@@ -136,7 +149,7 @@ export const runAgentLoop = async (
   const savedMessages = await persistNewMessages();
 
   return {
-    finalResponse: LLMResponse?.content?.text || "",
+    finalResponse,
     updatedMessages: [...oldMessages, ...savedMessages],
     isError: false,
   };

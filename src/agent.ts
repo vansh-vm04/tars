@@ -7,6 +7,7 @@ import {
   type Provider,
   type SessionMessageEntry,
   type Session,
+  type AgentEvent,
 } from "./types.js";
 import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
 
@@ -19,6 +20,7 @@ export class Agent {
   private provider: Provider;
   private contextManager: ContextManager;
   private sessionManager: SessionManager;
+  private eventHandlers: ((event: AgentEvent) => void)[] = [];
 
   constructor(model: string, config: AgentConfig, provider: Provider) {
     this.messages = config.messages || [];
@@ -27,6 +29,10 @@ export class Agent {
     this.provider = provider;
     this.contextManager = new ContextManager(TARS_MAX_CONTEXT_WINDOW);
     this.sessionManager = new SessionManager();
+  }
+
+  onEvent(handler: (event: AgentEvent) => void): void {
+    this.eventHandlers.push(handler);
   }
 
   get toolsList(): Tool[] {
@@ -91,6 +97,9 @@ export class Agent {
       compact: (messages) =>
         this.contextManager.compact(messages, this.provider, this.model),
       saveMessage: (messages) => this.sessionManager.saveMessage(messages),
+      onEvent: (event) => {
+        for (const handler of this.eventHandlers) handler(event);
+      },
     });
 
     this.messagesList = response.updatedMessages;

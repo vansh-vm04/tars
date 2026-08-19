@@ -22,6 +22,7 @@ export interface AgentLoopContext {
   saveMessage: (
     messages: (AgentMessage | SessionMessageEntry)[],
   ) => Promise<SessionMessageEntry[]>;
+  onEvent?: (event: AgentEvent) => void;
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;
@@ -195,7 +196,7 @@ export type AgentLoopResponse = {
 
 export type StopReason = "stop" | "length" | "toolUse" | "error" | "aborted";
 
-export type LLMStreamEvent =
+export type AgentEvent =
   | {
       type: "thinking-start";
     }
@@ -240,3 +241,36 @@ export type LLMStreamEvent =
       type: "error";
       error: Error;
     };
+
+export type LLMStreamEvent =
+  | { type: "text-delta"; text: string }
+  | { type: "thinking-delta"; text: string }
+  | {
+      type: "function-call-delta";
+      id: string;
+      name: string;
+      arguments: string;
+      thoughtSignature?: string;
+    }
+  | {
+      type: "finish";
+      reason: string;
+    }
+  | {
+      type: "error";
+      error: Error;
+      isRetryable?: boolean;
+      retryAfterMs?: number;
+    };
+
+export interface AgentStreamResult {
+  parts: MessageContent[];
+  toolCalls: {
+    id: string;
+    name: string;
+    arguments: Record<string, unknown>;
+  }[];
+  text: string;
+  isError: boolean;
+  error: string;
+}

@@ -1,4 +1,4 @@
-import type { AgentMessage, LLMInput, MessageContent, SessionMessageEntry } from "../types.js";
+import type { AgentMessage, MessageContent, SessionMessageEntry } from "../types.js";
 import { toAgentMessage } from "../utils/common.js";
 
 const TOOL_RESULT_MAX_CHARS = 2000;

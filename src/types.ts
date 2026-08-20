@@ -57,7 +57,7 @@ export interface AssistantMessage {
   content: MessageContent[];
 }
 
-export interface ToolResultMessage<TDetails = any> {
+export interface ToolResultMessage {
   role: "toolResult";
   toolCallId: string;
   toolName: string;
@@ -228,6 +228,10 @@ export type AgentEvent =
       id: string;
       name: string;
       arguments: Record<string, unknown>;
+    }
+  | {
+      type: "status";
+      message: string;
     }
   | {
       type: "finish";

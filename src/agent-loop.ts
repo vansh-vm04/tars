@@ -7,7 +7,6 @@ import type {
 } from "./types.js";
 import { toAgentMessage } from "./utils/common.js";
 import { AgentEventStream } from "./agent-events/stream.js";
-import chalk from "chalk";
 
 export const runAgentLoop = async (
   context: AgentLoopContext,
@@ -26,7 +25,7 @@ export const runAgentLoop = async (
   const compactIfNeeded = async () => {
     const messages = allMessages();
     if (!context.shouldCompact(messages)) return;
-    console.log(chalk.yellowBright("\n\n => Compacting conversation...\n\n"));
+    onEvent?.({ type: "status", message: "Compacting conversation…" });
     const result = await context.compact(messages);
     if (newMessages.length > 0) {
       await context.saveMessage(newMessages);

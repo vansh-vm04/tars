@@ -6,17 +6,21 @@ import type { Config } from "../types.js";
 import { getAvailableModels } from "../providers/models.js";
 import type { Agent } from "../agent.js";
 
-export async function loadConfig(rl: readLine.Interface): Promise<Config> {
+export async function readConfig(): Promise<Config | null> {
   try {
     const data = await readFile(CONFIG_FILE, "utf8");
     const config: Config = JSON.parse(data);
-    if (!config) {
-      return await askUserForModel(rl);
-    }
-    return config;
+    if (config && config.model) return config;
+    return null;
   } catch {
-    return await askUserForModel(rl);
+    return null;
   }
+}
+
+export async function saveConfig(config: Config): Promise<void> {
+  await mkdir(TARS_DIR, { recursive: true });
+
+  await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
 }
 
 export const askUserForModel = async (
@@ -55,9 +59,3 @@ export const askUserForModel = async (
     rl.write(chalk.red("Invalid model selection. Try again.\n\n> "));
   }
 };
-
-async function saveConfig(config: Config): Promise<void> {
-  await mkdir(TARS_DIR, { recursive: true });
-
-  await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
-}

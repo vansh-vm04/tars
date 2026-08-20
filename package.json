@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "bun src/index.ts",
+    "dev": "bun src/tui/tui.tsx",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
@@ -20,15 +20,17 @@
   },
   "homepage": "https://github.com/vansh-vm04/tars#readme",
   "devDependencies": {
-    "@types/figlet": "^1.7.0",
     "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
     "tsx": "^4.23.9",
     "typescript": "^7.0.2"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
+    "@opentui/core": "^0.5.6",
+    "@opentui/react": "^0.5.6",
     "chalk": "^6.0.0",
-    "figlet": "^1.11.4"
+    "react": "^19.2.8"
   },
   "trustedDependencies": [
     "@google/genai",

@@ -157,7 +157,7 @@ export const App = ({ onExit }: AppProps) => {
           ui.addSystemMessage(`${command.name} isn't supported in the TUI yet.`);
       }
     },
-    [ui, onExit],
+    [agent, ui, onExit],
   );
 
   const handleSubmit = useCallback(
@@ -242,6 +242,7 @@ export const App = ({ onExit }: AppProps) => {
           if (current) {
             await current.loadSession(session.id);
             ui.clear();
+            ui.loadMessages(current.messagesList);
           }
           setOverlay("none");
         }}

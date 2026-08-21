@@ -1,4 +1,4 @@
-import type { AgentEvent } from "./types.js";
+import type { AgentEvent, SessionMessageEntry } from "./types.js";
 
 export type ViewMessageRole = "user" | "assistant" | "system" | "error";
 
@@ -96,6 +96,53 @@ export class UiStore {
 
   clear(): void {
     this.messages.length = 0;
+    this.notify();
+  }
+
+  loadMessages(messages: SessionMessageEntry[]): void {
+    for (const message of messages) {
+      if (message.type === "compaction") {
+        continue;
+      }
+      if (message.role === "user") {
+        this.addUserMessage(
+          message.content
+            .map((c) => (typeof c === "string" ? c : (c as any).text))
+            .join(""),
+        );
+      } else if (message.role === "assistant") {
+        const viewMessage: ViewMessage = {
+          id: message.id,
+          role: "assistant",
+          text: "",
+          thinking: "",
+          thinkingOpen: false,
+          toolCalls: [],
+          finished: true,
+        };
+
+        for (const content of message.content) {
+          if (typeof content === "string") {
+            viewMessage.text += content;
+          } else {
+            const c = content as any;
+            if (c.type === "text") {
+              viewMessage.text += c.text;
+            } else if (c.type === "thinking") {
+              viewMessage.thinking += c.thinking;
+            } else if (c.type === "toolCall") {
+              viewMessage.toolCalls.push({
+                id: c.id,
+                name: c.name,
+                label: describeToolCall(c.name, c.arguments),
+                status: "done",
+              });
+            }
+          }
+        }
+        this.messages.push(viewMessage);
+      }
+    }
     this.notify();
   }
 

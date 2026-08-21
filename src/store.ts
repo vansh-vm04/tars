@@ -246,7 +246,7 @@ const describeToolCall = (
   name: string,
   args: Record<string, unknown>,
 ): string => {
-  const usage = args.usage ?? args.value ?? args.query ?? args.input ?? args.path;
+  const usage = args.usage ?? args.value ?? args.query ?? args.input ?? args.path ?? args.command;
   if (usage === undefined) return name;
   const text = String(usage).replace(/\s+/g, " ").trim();
   if (text.length > 60) return `${name} ${text.slice(0, 60)}...`;

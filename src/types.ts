@@ -115,10 +115,24 @@ export interface Config {
   model: string;
 }
 
+export type OverlayType = "none" | "help" | "model" | "session";
+
+export interface CommandContext {
+  agent: Agent | null;
+  ui: {
+    clear(): void;
+    addSystemMessage(text: string): void;
+    [key: string]: any;
+  };
+  setOverlay: (overlay: OverlayType) => void;
+  setSessions: (sessions: Session[]) => void;
+  onExit: () => void;
+}
+
 export interface Command {
   name: string;
   description: string;
-  execute(rl: readLine.Interface, agent: Agent): Promise<void>;
+  execute(context: CommandContext): Promise<void> | void;
 }
 
 export interface LLMResponse {

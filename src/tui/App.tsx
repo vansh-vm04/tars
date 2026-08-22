@@ -128,34 +128,13 @@ export const App = ({ onExit }: AppProps) => {
         ui.addSystemMessage(`unknown command: ${cmd}`);
         return;
       }
-      switch (command.name) {
-        case "/help":
-          setOverlay("help");
-          return;
-        case "/new":
-          ui.clear();
-          return;
-        case "/model":
-          setOverlay("model");
-          return;
-        case "/session": {
-          const current = agent;
-          if (current) {
-            void current.allSessions().then((all) => {
-              const cwd = process.cwd();
-              const matching = all.filter((s) => s.cwd === cwd);
-              setSessions(matching);
-              setOverlay("session");
-            });
-          }
-          return;
-        }
-        case "/exit":
-          onExit();
-          return;
-        default:
-          ui.addSystemMessage(`${command.name} isn't supported in the TUI yet.`);
-      }
+      void command.execute({
+        agent,
+        ui,
+        setOverlay,
+        setSessions,
+        onExit,
+      });
     },
     [agent, ui, onExit],
   );

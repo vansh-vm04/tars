@@ -57,8 +57,17 @@ export const callLLMStream = async function* (
         return;
       }
 
+      const delayMs = Math.min(retryDelayMs, remainingMs);
+      const retrySeconds = Math.ceil(delayMs / 1000);
+
+      yield {
+        type: "retry",
+        delaySeconds: retrySeconds,
+        reason: lastErrorMessage,
+      };
+
       console.error("Retrying LLM stream after error:", lastErrorMessage);
-      await sleep(Math.min(retryDelayMs, remainingMs));
+      await sleep(delayMs);
     }
   }
 

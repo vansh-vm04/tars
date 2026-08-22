@@ -25,8 +25,10 @@ export const runAgentLoop = async (
   const compactIfNeeded = async () => {
     const messages = allMessages();
     if (!context.shouldCompact(messages)) return;
-    onEvent?.({ type: "status", message: "Compacting conversation…" });
+    const tokensBefore = context.estimateTokenCount?.(messages.map(toAgentMessage)) || 0;
+    onEvent?.({ type: "compaction_start" });
     const result = await context.compact(messages);
+    const tokensAfter = context.estimateTokenCount?.(result.updatedMessages.map(toAgentMessage)) || 0;
     if (newMessages.length > 0) {
       await context.saveMessage(newMessages);
     }
@@ -34,6 +36,7 @@ export const runAgentLoop = async (
     oldMessages = result.updatedMessages;
     newMessages = [];
     savedMessages = [];
+    onEvent?.({ type: "compaction_end", tokensBefore, tokensAfter });
   };
 
   const persistNewMessages = async (): Promise<SessionMessageEntry[]> => {

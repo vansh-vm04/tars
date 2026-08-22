@@ -19,6 +19,7 @@ export interface AgentLoopContext {
   tools?: Tool[];
   shouldCompact: (messages: SessionMessageEntry[]) => boolean;
   compact: (messages: SessionMessageEntry[]) => Promise<CompactionResult>;
+  estimateTokenCount?: (messages: AgentMessage[]) => number;
   saveMessage: (
     messages: (AgentMessage | SessionMessageEntry)[],
   ) => Promise<SessionMessageEntry[]>;
@@ -254,6 +255,19 @@ export type AgentEvent =
   | {
       type: "error";
       error: string;
+    }
+  | {
+      type: "compaction_start";
+    }
+  | {
+      type: "compaction_end";
+      tokensBefore: number;
+      tokensAfter: number;
+    }
+  | {
+      type: "retry";
+      delaySeconds: number;
+      reason: string;
     };
 
 export type LLMStreamEvent =
@@ -275,6 +289,11 @@ export type LLMStreamEvent =
       error: string;
       isRetryable?: boolean;
       retryAfterMs?: number;
+    }
+  | {
+      type: "retry";
+      delaySeconds: number;
+      reason: string;
     };
 
 export interface AgentStreamResult {

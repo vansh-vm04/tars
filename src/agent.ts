@@ -96,6 +96,7 @@ export class Agent {
       shouldCompact: (messages) => this.contextManager.shouldCompact(messages),
       compact: (messages) =>
         this.contextManager.compact(messages, this.provider, this.model),
+      estimateTokenCount: (messages) => this.contextManager.estimateTokenCount(messages),
       saveMessage: (messages) => this.sessionManager.saveMessage(messages),
       onEvent: (event) => {
         for (const handler of this.eventHandlers) handler(event);

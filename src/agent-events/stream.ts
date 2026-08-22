@@ -76,6 +76,10 @@ export class AgentEventStream {
         this.finish("error");
         this.emit({ type: "error", error: event.error });
         break;
+
+      case "retry":
+        this.emit(event);
+        break;
     }
   }
 

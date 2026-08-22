@@ -47,7 +47,7 @@ const Message = ({ message }: MessageProps) => {
   if (message.role === "error") {
     return (
       <box flexDirection="column" marginY={1}>
-        <text fg={COLORS.red}>error: {message.text}</text>
+        <text fg={COLORS.red}>{"⚠ " + message.text}</text>
       </box>
     );
   }
@@ -55,7 +55,7 @@ const Message = ({ message }: MessageProps) => {
   if (message.role === "system") {
     return (
       <box flexDirection="column" marginY={1}>
-        <text fg={COLORS.cyan}>i {message.text}</text>
+        <text fg={COLORS.yellow}>{message.text}</text>
       </box>
     );
   }

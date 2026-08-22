@@ -233,7 +233,20 @@ export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
       store.finish();
       break;
     case "status":
+      store.addSystemMessage(event.message);
       store.setStatus(event.message);
+      break;
+    case "compaction_start":
+      store.addSystemMessage("ⓘ Compacting conversation…");
+      store.setStatus("Compacting conversation…");
+      break;
+    case "compaction_end":
+      store.addSystemMessage(`✦ Conversation compacted (tokens: ${event.tokensBefore} → ${event.tokensAfter}). \nTokens Saved: ${event.tokensBefore - event.tokensAfter}`);
+      store.setStatus("");
+      break;
+    case "retry":
+      store.addSystemMessage(`ⓘ ${event.reason}`);
+      store.setStatus(`Retrying in ${Math.ceil(event.delaySeconds)}s...`);
       break;
     case "error":
       store.finish();

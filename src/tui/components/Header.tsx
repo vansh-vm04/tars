@@ -23,7 +23,7 @@ export const Header = ({ sessionName }: HeaderProps) => (
     {sessionName ? (
       <text fg={COLORS.front}>{sessionName}</text>
     ) : (
-      <text fg={COLORS.dim}>No session</text>
+      <text fg={COLORS.dim}>New Session</text>
     )}
   </box>
 );

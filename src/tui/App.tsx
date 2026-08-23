@@ -8,7 +8,6 @@ import {
   Composer,
   ApiKeyDialog,
   ModelPicker,
-  HelpView,
   SessionPicker,
   COLORS,
 } from "./components/index.js";
@@ -39,18 +38,21 @@ export const App = ({ onExit }: AppProps) => {
   const [models, setModels] = useState<ModelDefinition[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  const startAgent = useCallback((a: AuthConfig, config: Config) => {
-    const provider = new GoogleProvider(a.apiKey);
-    const nextAgent = new Agent(
-      config.model,
-      { messages: [], tools: availableTools },
-      provider,
-    );
-    nextAgent.onEvent((event) => applyAgentEvent(ui, event));
-    setAgent(nextAgent);
-    setModel(nextAgent.modelName);
-    setStage("ready");
-  }, [ui]);
+  const startAgent = useCallback(
+    (a: AuthConfig, config: Config) => {
+      const provider = new GoogleProvider(a.apiKey);
+      const nextAgent = new Agent(
+        config.model,
+        { messages: [], tools: availableTools },
+        provider,
+      );
+      nextAgent.onEvent((event) => applyAgentEvent(ui, event));
+      setAgent(nextAgent);
+      setModel(nextAgent.modelName);
+      setStage("ready");
+    },
+    [ui],
+  );
 
   const configStage = useCallback(
     async (a: AuthConfig) => {
@@ -135,6 +137,7 @@ export const App = ({ onExit }: AppProps) => {
         setSessions,
         onExit,
       });
+      setSessionName(agent?.currentSessionName || "New Session");
     },
     [agent, ui, onExit],
   );
@@ -184,23 +187,13 @@ export const App = ({ onExit }: AppProps) => {
   }
 
   if (stage === "auth") {
-    return (
-      <ApiKeyDialog onSubmit={handleAuthKey} onCancel={onExit} />
-    );
+    return <ApiKeyDialog onSubmit={handleAuthKey} onCancel={onExit} />;
   }
 
   if (stage === "model") {
     return (
-      <ModelPicker
-        models={models}
-        onPick={handlePickModel}
-        onCancel={onExit}
-      />
+      <ModelPicker models={models} onPick={handlePickModel} onCancel={onExit} />
     );
-  }
-
-  if (overlay === "help") {
-    return <HelpView onClose={() => setOverlay("none")} />;
   }
 
   if (overlay === "model") {

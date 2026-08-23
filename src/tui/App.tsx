@@ -6,7 +6,6 @@ import {
   Header,
   MessageList,
   Composer,
-  StatusBar,
   ApiKeyDialog,
   ModelPicker,
   HelpView,
@@ -36,6 +35,7 @@ export const App = ({ onExit }: AppProps) => {
   const [auth, setAuth] = useState<AuthConfig | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [model, setModel] = useState("");
+  const [sessionName, setSessionName] = useState("");
   const [models, setModels] = useState<ModelDefinition[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
 
@@ -154,6 +154,7 @@ export const App = ({ onExit }: AppProps) => {
         .prompt(input)
         .then((result) => {
           if (result.isError) ui.pushError("No output produced.");
+          setSessionName(current.currentSessionName || "New Session");
         })
         .catch((error: unknown) => {
           ui.pushError(String(error));
@@ -222,6 +223,7 @@ export const App = ({ onExit }: AppProps) => {
             await current.loadSession(session.id);
             ui.clear();
             ui.loadMessages(current.messagesList);
+            setSessionName(session.name);
           }
           setOverlay("none");
         }}
@@ -231,11 +233,17 @@ export const App = ({ onExit }: AppProps) => {
   }
 
   return (
-    <box width="100%" height="100%" flexDirection="column">
-      <Header model={model} />
-      <MessageList store={ui} />
-      <Composer store={ui} onSubmit={handleSubmit} />
-      <StatusBar store={ui} model={model} />
+    <box
+      width="100%"
+      height="100%"
+      flexDirection="column"
+      backgroundColor={COLORS.bg}
+    >
+      <Header sessionName={sessionName} />
+      <box flexGrow={1} width="100%" flexDirection="column" overflow="hidden">
+        <MessageList store={ui} />
+      </box>
+      <Composer store={ui} model={model} onSubmit={handleSubmit} />
     </box>
   );
 };

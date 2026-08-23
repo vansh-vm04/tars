@@ -51,6 +51,10 @@ export class Agent {
     return this.model;
   }
 
+  get currentSessionName(): string | undefined {
+    return this.sessionManager.currentSession?.name;
+  }
+
   allSessions(): Promise<Session[]> {
     return this.sessionManager.listSessions();
   }

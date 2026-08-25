@@ -8,8 +8,9 @@ import {
   type SessionMessageEntry,
   type Session,
   type AgentEvent,
+  type AgentMode,
 } from "./types.js";
-import { SYSTEM_PROMPT } from "./utils/system-prompt.js";
+import { MODE_CONFIG } from "./modes.js";
 
 const TARS_MAX_CONTEXT_WINDOW = 200_000;
 
@@ -21,6 +22,7 @@ export class Agent {
   private contextManager: ContextManager;
   private sessionManager: SessionManager;
   private eventHandlers: ((event: AgentEvent) => void)[] = [];
+  private _mode: AgentMode = "build";
 
   constructor(model: string, config: AgentConfig, provider: Provider) {
     this.messages = config.messages || [];
@@ -36,7 +38,7 @@ export class Agent {
   }
 
   get toolsList(): Tool[] {
-    return this.tools;
+    return MODE_CONFIG[this._mode].tools as unknown as Tool[];
   }
 
   get messagesList(): SessionMessageEntry[] {
@@ -53,6 +55,14 @@ export class Agent {
 
   get currentSessionName(): string | undefined {
     return this.sessionManager.currentSession?.name;
+  }
+
+  get mode(): AgentMode {
+    return this._mode;
+  }
+
+  set mode(value: AgentMode) {
+    this._mode = value;
   }
 
   allSessions(): Promise<Session[]> {
@@ -90,13 +100,14 @@ export class Agent {
         userMessage,
       );
     }
+    const { systemPrompt, tools } = MODE_CONFIG[this._mode];
     const response = await runAgentLoop({
       model: this.model,
       provider: this.provider,
       userMessage,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt,
       messages: this.messagesList,
-      tools: this.toolsList,
+      tools,
       shouldCompact: (messages) => this.contextManager.shouldCompact(messages),
       compact: (messages) =>
         this.contextManager.compact(messages, this.provider, this.model),

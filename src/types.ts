@@ -116,10 +116,13 @@ export interface Config {
   model: string;
 }
 
-export type OverlayType = "none" | "help" | "model" | "session";
+export type OverlayType = "none" | "help" | "model" | "session" | "agent";
 
 export interface CommandContext {
   agent: Agent | null;
+  sessionId?: string;
+  model?: string;
+  agentMode?: AgentMode;
   ui: {
     clear(): void;
     addSystemMessage(text: string): void;
@@ -307,3 +310,5 @@ export interface AgentStreamResult {
   isError: boolean;
   error: string;
 }
+
+export type AgentMode = "build" | "plan";

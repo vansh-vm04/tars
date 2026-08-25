@@ -14,10 +14,11 @@ export type SubmitHandler = (
 export type ComposerProps = {
   store: UiStore;
   model: string;
+  agentMode: string;
   onSubmit: SubmitHandler;
 };
 
-export const Composer = ({ store, model, onSubmit }: ComposerProps) => {
+export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) => {
   useStoreVersion(store);
   const textareaRef = useRef<TextareaRenderable>(null);
   const disabled = store.streaming;
@@ -191,6 +192,8 @@ export const Composer = ({ store, model, onSubmit }: ComposerProps) => {
             {store.streaming ? "⟳" : "●"} {statusText}
           </text>
           <text fg={COLORS.dim}>· {model || "—"}</text>
+          <text fg={COLORS.dim}>·</text>
+          <text fg={agentMode === "plan" ? COLORS.amber : COLORS.green}>{agentMode?.toUpperCase() || "BUILD"}</text>
         </box>
         <text fg={COLORS.dim}>type / for commands</text>
       </box>

@@ -5,5 +5,6 @@ export { StatusBar, type StatusBarProps } from "./StatusBar.js";
 export { ApiKeyDialog, type ApiKeyDialogProps } from "./ApiKeyDialog.js";
 export { ModelPicker, type ModelPickerProps } from "./ModelPicker.js";
 export { SessionPicker, type SessionPickerProps } from "./SessionPicker.js";
+export { AgentPicker, type AgentPickerProps } from "./AgentPicker.js";
 export { COLORS } from "../theme.js";
 export { useStoreVersion } from "../use-store.js";

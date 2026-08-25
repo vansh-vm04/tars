@@ -9,6 +9,7 @@ import {
   ApiKeyDialog,
   ModelPicker,
   SessionPicker,
+  AgentPicker,
   COLORS,
 } from "./components/index.js";
 import { readAuth, saveAuth } from "../storage/auth.js";
@@ -17,11 +18,11 @@ import { getAvailableModels } from "../providers/models.js";
 import { GoogleProvider } from "../providers/google-provider.js";
 import { Agent } from "../agent.js";
 import { availableTools } from "../tools/index.js";
-import type { ModelDefinition, Session } from "../types.js";
+import type { ModelDefinition, Session, AgentMode } from "../types.js";
 import type { AuthConfig, Config } from "../types.js";
 
 type Stage = "loading" | "auth" | "model" | "ready";
-type Overlay = "none" | "help" | "model" | "session";
+type Overlay = "none" | "help" | "model" | "session" | "agent";
 
 export type AppProps = {
   onExit: () => void;
@@ -35,6 +36,7 @@ export const App = ({ onExit }: AppProps) => {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [model, setModel] = useState("");
   const [sessionName, setSessionName] = useState("");
+  const [agentMode, setAgentMode] = useState<AgentMode>("build");
   const [models, setModels] = useState<ModelDefinition[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
 
@@ -49,6 +51,7 @@ export const App = ({ onExit }: AppProps) => {
       nextAgent.onEvent((event) => applyAgentEvent(ui, event));
       setAgent(nextAgent);
       setModel(nextAgent.modelName);
+      setAgentMode(nextAgent.mode);
       setStage("ready");
     },
     [ui],
@@ -106,38 +109,78 @@ export const App = ({ onExit }: AppProps) => {
 
   const handlePickModel = useCallback(
     async (definition: ModelDefinition) => {
-      const config: Config = {
-        provider: definition.provider,
-        model: definition.id,
-      };
-      await saveConfig(config);
-      if (agent) {
-        await agent.setModelName(config.model);
-        setModel(config.model);
-      } else {
+      // Resolve via registry — no individual command imports
+      const command = availableCommands.find((c) => c.name === "/model");
+      if (command) {
+        await command.execute({
+          agent,
+          model: definition.id,
+          ui,
+          setOverlay,
+          setSessions,
+          onExit,
+        } as any);
+      }
+      // TUI state
+      setModel(definition.id);
+      if (!agent) {
         const a = auth ?? (await readAuth());
-        if (a) startAgent(a, config);
+        if (a) {
+          const cfg: Config = { provider: definition.provider, model: definition.id };
+          // Agent creation is still via TUI startup helper (no direct agent mutation beyond command)
+          startAgent(a, cfg);
+        }
       }
       setOverlay("none");
     },
-    [agent, auth, startAgent],
+    [agent, auth, ui, startAgent],
+  );
+
+  const handlePickAgentMode = useCallback(
+    async (mode: AgentMode) => {
+      const command = availableCommands.find((c) => c.name === "/agent");
+      if (command) {
+        await command.execute({
+          agent,
+          agentMode: mode,
+          ui,
+          setOverlay,
+          setSessions,
+          onExit,
+        } as any);
+      }
+      if (agent) setAgentMode(agent.mode);
+      else setAgentMode(mode);
+      setOverlay("none");
+    },
+    [agent, ui],
   );
 
   const handleCommand = useCallback(
-    (cmd: string) => {
-      const command = availableCommands.find((c) => c.name === cmd);
+    async (cmd: string) => {
+      const [name, ...rest] = cmd.trim().split(/\s+/);
+      const raw = rest.join(" ").trim();
+      const command = availableCommands.find((c) => c.name === name);
       if (!command) {
         ui.addSystemMessage(`unknown command: ${cmd}`);
         return;
       }
-      void command.execute({
+
+      const ctx: any = {
         agent,
         ui,
         setOverlay,
         setSessions,
         onExit,
-      });
-      setSessionName(agent?.currentSessionName || "New Session");
+      };
+      if (name === "/agent") ctx.agentMode = raw || undefined;
+      else if (name === "/model") ctx.model = raw || undefined;
+      else if (name === "/session") ctx.sessionId = raw || undefined;
+
+      await command.execute(ctx);
+      if (name === "/agent" && agent) {
+        setAgentMode(agent.mode);
+      }
     },
     [agent, ui, onExit],
   );
@@ -211,15 +254,30 @@ export const App = ({ onExit }: AppProps) => {
       <SessionPicker
         sessions={sessions}
         onPick={async (session) => {
-          const current = agent;
-          if (current) {
-            await current.loadSession(session.id);
-            ui.clear();
-            ui.loadMessages(current.messagesList);
-            setSessionName(session.name);
+          const command = availableCommands.find((c) => c.name === "/session");
+          if (command) {
+            await command.execute({
+              agent,
+              sessionId: session.id,
+              ui,
+              setOverlay,
+              setSessions,
+              onExit,
+            } as any);
           }
+          setSessionName(session.name);
           setOverlay("none");
         }}
+        onCancel={() => setOverlay("none")}
+      />
+    );
+  }
+
+  if (overlay === "agent") {
+    return (
+      <AgentPicker
+        currentMode={agent?.mode ?? "build"}
+        onPick={handlePickAgentMode}
         onCancel={() => setOverlay("none")}
       />
     );
@@ -236,7 +294,7 @@ export const App = ({ onExit }: AppProps) => {
       <box flexGrow={1} width="100%" flexDirection="column" overflow="hidden">
         <MessageList store={ui} />
       </box>
-      <Composer store={ui} model={model} onSubmit={handleSubmit} />
+      <Composer store={ui} model={model} agentMode={agentMode} onSubmit={handleSubmit} />
     </box>
   );
 };

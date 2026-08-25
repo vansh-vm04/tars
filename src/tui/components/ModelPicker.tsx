@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import type { ModelDefinition } from "../../types.js";
-import { COLORS } from "./theme.js";
+import { COLORS } from "../theme.js";
 
 export type ModelPickerProps = {
   models: ModelDefinition[];

@@ -1,4 +1,4 @@
-import { COLORS } from "./theme.js";
+import { COLORS } from "../theme.js";
 
 export type HeaderProps = {
   sessionName?: string;

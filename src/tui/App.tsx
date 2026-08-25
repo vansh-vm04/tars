@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import { UiStore, applyAgentEvent } from "../store.js";
+import { UiStore, applyAgentEvent } from "./store.js";
 import { availableCommands } from "../commands/index.js";
 import {
   Header,

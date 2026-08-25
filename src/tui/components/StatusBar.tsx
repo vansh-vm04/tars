@@ -1,7 +1,7 @@
 import { useTerminalDimensions } from "@opentui/react";
-import type { UiStore } from "../../store.js";
-import { useStoreVersion } from "./use-store.js";
-import { COLORS } from "./theme.js";
+import type { UiStore } from "../store.js";
+import { useStoreVersion } from "../use-store.js";
+import { COLORS } from "../theme.js";
 
 export type StatusBarProps = {
   store: UiStore;

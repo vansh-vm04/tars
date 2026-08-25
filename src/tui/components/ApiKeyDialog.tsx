@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import { COLORS } from "./theme.js";
+import { COLORS } from "../theme.js";
 
 export type ApiKeyDialogProps = {
   onSubmit: (apiKey: string) => void;

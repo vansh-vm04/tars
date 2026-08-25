@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import type { UiStore } from "../../store.js";
-import { useStoreVersion } from "./use-store.js";
-import { COLORS } from "./theme.js";
+import type { UiStore } from "../store.js";
+import { useStoreVersion } from "../use-store.js";
+import { COLORS } from "../theme.js";
 import type { TextareaRenderable } from "@opentui/core";
 import { availableCommands } from "../../commands/index.js";
 

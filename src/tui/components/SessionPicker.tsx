@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import type { Session } from "../../types.js";
-import { COLORS } from "./theme.js";
+import { COLORS } from "../theme.js";
 
 export type SessionPickerProps = {
   sessions: Session[];

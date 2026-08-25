@@ -128,7 +128,7 @@ export const Composer = ({ store, model, onSubmit }: ComposerProps) => {
       flexDirection="column"
       border
       borderStyle="rounded"
-      borderColor={disabled ? COLORS.dim : COLORS.blue}
+      borderColor={disabled ? COLORS.dim : COLORS.border}
       backgroundColor={COLORS.bg}
       paddingX={1}
       flexShrink={0}

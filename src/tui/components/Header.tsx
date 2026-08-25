@@ -9,7 +9,7 @@ export const Header = ({ sessionName }: HeaderProps) => (
     width="100%"
     border
     borderStyle="rounded"
-    borderColor={COLORS.blue}
+    borderColor={COLORS.border}
     paddingX={1}
     flexDirection="row"
     alignItems="center"

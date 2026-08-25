@@ -92,7 +92,7 @@ export const ModelPicker = ({ models, onPick, onCancel }: ModelPickerProps) => {
         flexDirection="column"
         border
         borderStyle="rounded"
-        borderColor={COLORS.blue}
+        borderColor={COLORS.border}
         backgroundColor={COLORS.bg}
         paddingX={2}
         paddingY={2}

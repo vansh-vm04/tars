@@ -105,7 +105,7 @@ export const SessionPicker = ({ sessions, onPick, onCancel }: SessionPickerProps
         flexDirection="column"
         border
         borderStyle="rounded"
-        borderColor={COLORS.cyan}
+        borderColor={COLORS.border}
         backgroundColor={COLORS.bg}
         paddingX={2}
         paddingY={2}
@@ -113,7 +113,7 @@ export const SessionPicker = ({ sessions, onPick, onCancel }: SessionPickerProps
       >
         <box flexDirection="row" justifyContent="space-between" alignItems="center">
           <box flexDirection="column">
-            <text fg={COLORS.cyan}>
+            <text fg={COLORS.green}>
               <strong>◈ Sessions</strong>
             </text>
             <text fg={COLORS.dim}>

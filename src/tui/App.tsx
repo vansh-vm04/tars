@@ -126,7 +126,10 @@ export const App = ({ onExit }: AppProps) => {
       if (!agent) {
         const a = auth ?? (await readAuth());
         if (a) {
-          const cfg: Config = { provider: definition.provider, model: definition.id };
+          const cfg: Config = {
+            provider: definition.provider,
+            model: definition.id,
+          };
           // Agent creation is still via TUI startup helper (no direct agent mutation beyond command)
           startAgent(a, cfg);
         }
@@ -180,6 +183,9 @@ export const App = ({ onExit }: AppProps) => {
       await command.execute(ctx);
       if (name === "/agent" && agent) {
         setAgentMode(agent.mode);
+      }
+      if (name === "/new") {
+        setSessionName("New Session");
       }
     },
     [agent, ui, onExit],
@@ -294,7 +300,12 @@ export const App = ({ onExit }: AppProps) => {
       <box flexGrow={1} width="100%" flexDirection="column" overflow="hidden">
         <MessageList store={ui} />
       </box>
-      <Composer store={ui} model={model} agentMode={agentMode} onSubmit={handleSubmit} />
+      <Composer
+        store={ui}
+        model={model}
+        agentMode={agentMode}
+        onSubmit={handleSubmit}
+      />
     </box>
   );
 };

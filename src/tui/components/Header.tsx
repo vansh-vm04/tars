@@ -7,15 +7,12 @@ export type HeaderProps = {
 export const Header = ({ sessionName }: HeaderProps) => (
   <box
     width="100%"
-    border
-    borderStyle="rounded"
-    borderColor={COLORS.border}
-    paddingX={1}
     flexDirection="row"
     alignItems="center"
     justifyContent="space-between"
-    backgroundColor={COLORS.bg}
+    paddingX={1}
     flexShrink={0}
+    backgroundColor={COLORS.bg}
   >
     <text fg={COLORS.green}>
       <strong>TARS</strong>

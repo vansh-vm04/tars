@@ -149,7 +149,7 @@ export const Composer = ({ store, model, onSubmit }: ComposerProps) => {
               flexDirection="row"
               gap={1}
               paddingX={1}
-              backgroundColor={idx === selectedIndex ? "#1e2030" : "transparent"}
+              backgroundColor={idx === selectedIndex ? COLORS.selection : COLORS.transparent}
             >
               <text fg={idx === selectedIndex ? COLORS.green : COLORS.front}>
                 {idx === selectedIndex ? "› " : "  "}

@@ -9,11 +9,12 @@ export const Header = ({ sessionName }: HeaderProps) => (
     width="100%"
     border
     borderStyle="rounded"
-    borderColor={COLORS.border}
+    borderColor={COLORS.blue}
     paddingX={1}
     flexDirection="row"
     alignItems="center"
     justifyContent="space-between"
+    backgroundColor={COLORS.bg}
     flexShrink={0}
   >
     <text fg={COLORS.green}>

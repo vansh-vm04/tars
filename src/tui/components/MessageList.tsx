@@ -2,30 +2,40 @@ import type { ViewMessage } from "../types.js";
 import { useStoreVersion } from "../use-store.js";
 import { COLORS } from "../theme.js";
 import { markdownSyntaxStyle, thinkingMarkdownSyntaxStyle } from "../theme.js";
+import { StatusIndicator } from "./StatusIndicator.js";
 
 type MessageProps = {
   message: ViewMessage;
 };
 
-const ThinkingBlock = ({ text }: { text: string }) => (
+const ThinkingBlock = ({
+  text,
+  isSpinning,
+}: {
+  text: string;
+  isSpinning: boolean;
+}) => (
   <box flexDirection="column" marginY={1}>
-    <text fg={COLORS.cyan}>
-      ◌ Thinking...
-    </text>
+    {isSpinning ? (
+      <StatusIndicator label="Thinking..." color={COLORS.cyan} />
+    ) : (
+      <text fg={COLORS.cyan}>○ Thought</text>
+    )}
     <markdown
       content={text}
       syntaxStyle={thinkingMarkdownSyntaxStyle}
-      streaming
+      streaming={isSpinning}
     />
   </box>
 );
 
 const ToolCallRow = ({ tool }: { tool: ViewMessage["toolCalls"][number] }) => (
-  <box flexDirection="row" marginY={1}>
-    <text fg={tool.status === "running" ? COLORS.amber : COLORS.green}>
-      {tool.status === "running" ? "⟳" : "✓"}{" "}
-    </text>
-
+  <box flexDirection="row" marginY={1} gap={1}>
+    {tool.status === "running" ? (
+      <StatusIndicator label="" color={COLORS.amber} />
+    ) : (
+      <text fg={COLORS.green}>✓ </text>
+    )}
     <text fg={tool.status === "running" ? COLORS.amber : COLORS.green}>
       {tool.label}
     </text>
@@ -63,7 +73,7 @@ const Message = ({ message }: MessageProps) => {
   return (
     <box flexDirection="column" marginY={1}>
       {(message.thinkingOpen || message.thinking !== "") && (
-        <ThinkingBlock text={message.thinking} />
+        <ThinkingBlock text={message.thinking} isSpinning={message.thinkingOpen} />
       )}
 
       {message.toolCalls.map((tool) => (
@@ -81,7 +91,9 @@ const Message = ({ message }: MessageProps) => {
       )}
 
       {!message.finished && message.text === "" && (
-        <text fg={COLORS.dim} marginY={1}>…</text>
+        <box marginY={1}>
+          <StatusIndicator label="" color={COLORS.amber} />
+        </box>
       )}
     </box>
   );

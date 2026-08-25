@@ -5,6 +5,7 @@ import { useStoreVersion } from "../use-store.js";
 import { COLORS } from "../theme.js";
 import type { TextareaRenderable } from "@opentui/core";
 import { availableCommands } from "../../commands/index.js";
+import { StatusIndicator } from "./StatusIndicator.js";
 
 export type SubmitHandler = (
   input: string,
@@ -187,13 +188,15 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
         justifyContent="space-between"
         alignItems="center"
       >
-        <box flexDirection="row" gap={1}>
-          <text fg={statusColor}>
-            {store.streaming ? "⟳" : "●"} {statusText}
-          </text>
+        <box flexDirection="row" gap={1} alignItems="center">
+          {store.streaming || store.status !== "" ? (
+            <StatusIndicator label={statusText} color={statusColor} />
+          ) : (
+            <text fg={statusColor}>● {statusText}</text>
+          )}
           <text fg={COLORS.dim}>· {model || "—"}</text>
           <text fg={COLORS.dim}>·</text>
-          <text fg={agentMode === "plan" ? COLORS.amber : COLORS.green}>{agentMode?.toUpperCase() || "BUILD"}</text>
+          <text fg={agentMode === "plan" ? COLORS.amber : COLORS.blue}>{agentMode?.toUpperCase() || "BUILD"}</text>
         </box>
         <text fg={COLORS.dim}>type / for commands</text>
       </box>

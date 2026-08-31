@@ -1,4 +1,5 @@
 import type { Command } from "../types.js";
+import { arePathsEqual } from "../utils/common.js";
 
 export const sessionCommand: Command = {
   name: "/session",
@@ -21,8 +22,9 @@ export const sessionCommand: Command = {
     }
     if (!agent) return;
     const all = await agent.allSessions();
+
     const cwd = process.cwd();
-    const matching = all.filter((s) => s.cwd === cwd);
+    const matching = all.filter((s) => arePathsEqual(s.cwd, cwd));
     setSessions(matching);
     setOverlay("session");
   },

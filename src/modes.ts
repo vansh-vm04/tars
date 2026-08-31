@@ -1,4 +1,4 @@
-import { BUILD_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT } from "./utils/system-prompt.js";
+import { generatePrompt } from "./utils/system-prompt.js";
 import { readTool } from "./tools/read.js";
 import { bashTool, planBashTool } from "./tools/bash.js";
 import { editTool } from "./tools/edit.js";
@@ -10,11 +10,11 @@ const PLAN_TOOLS: Tool[] = [readTool, planBashTool];
 
 export const MODE_CONFIG = {
   build: {
-    systemPrompt: BUILD_SYSTEM_PROMPT,
+    systemPrompt: generatePrompt("build", BUILD_TOOLS),
     tools: BUILD_TOOLS,
   },
   plan: {
-    systemPrompt: PLAN_SYSTEM_PROMPT,
+    systemPrompt: generatePrompt("plan", PLAN_TOOLS),
     tools: PLAN_TOOLS,
   },
 } as const;

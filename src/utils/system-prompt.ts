@@ -1,17 +1,14 @@
-import { availableTools } from "../tools/index.js";
+import type { Tool } from "../types.js";
 
-const BASE_SYSTEM_PROMPT = `
+const BASE_HEADER = `
 You are TARS, an intelligent terminal assistant.
 
 Your goal is to help the user accurately, efficiently, safely, and naturally.
 
 You have access to tools that can interact with the user's local environment.
+`;
 
-Available tools:
-${availableTools
-  .map((tool) => `- ${tool.name}: ${tool.description}`)
-  .join("\n")}
-
+const BASE_FOOTER = `
 ## Tool Usage
 
 - Only use tools that are explicitly available to you.
@@ -153,10 +150,7 @@ The bash tool can execute commands in the user's local environment.
 - Do not add unnecessary formatting or decorative text.
 `;
 
-export const BUILD_SYSTEM_PROMPT = `
-${BASE_SYSTEM_PROMPT}
-
-## Agent Mode: Build
+const BUILD_MODE_SECTION = `## Agent Mode: Build
 
 You are in Build mode.
 
@@ -192,13 +186,9 @@ Your responsibility is to implement the user's requested changes.
 - Do not assume code works merely because it looks correct.
 - Do not claim that a change is complete or working until the relevant verification has passed, unless verification could not be performed.
 - If verification cannot be performed because a required command, dependency, or tool is unavailable, clearly report that limitation instead of claiming success.
-- Do not run unrelated, destructive, or unnecessarily expensive checks.
-`;
+- Do not run unrelated, destructive, or unnecessarily expensive checks.`;
 
-export const PLAN_SYSTEM_PROMPT = `
-${BASE_SYSTEM_PROMPT}
-
-## Agent Mode: Plan
+const PLAN_MODE_SECTION = `## Agent Mode: Plan
 
 You are in Plan mode.
 
@@ -260,5 +250,15 @@ The plan should clearly communicate:
 - Base the plan on the actual repository state discovered through tools.
 - Do not claim that changes have been made.
 - Do not present hypothetical implementation details as facts when the repository has not been inspected.
-- If the available information is insufficient to create a reliable plan, inspect the relevant files before responding.
-`;
+- If the available information is insufficient to create a reliable plan, inspect the relevant files before responding.`;
+
+// Generate a system prompt for a given mode and its tool set.
+export function generatePrompt(
+  mode: "build" | "plan",
+  tools: Tool[],
+): string {
+  const toolList = tools.map((t) => `- ${t.name}: ${t.description}`).join("\n");
+  const toolsSection = `Available tools:\n${toolList}`;
+  const modeSection = mode === "build" ? BUILD_MODE_SECTION : PLAN_MODE_SECTION;
+  return `${BASE_HEADER}\n${toolsSection}\n${BASE_FOOTER}\n${modeSection}`;
+}

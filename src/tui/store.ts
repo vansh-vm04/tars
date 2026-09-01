@@ -76,6 +76,41 @@ export class UiStore {
     this.notify();
   }
 
+  private retryMessageId: string | null = null;
+
+  upsertRetryMessage(reason: string, delaySeconds: number): void {
+    const text = `ⓘ ${reason} — retrying in ${delaySeconds}s`;
+    const status = `Retrying in ${delaySeconds}s...`;
+    // Update existing retry message if it's the last system message
+    if (this.retryMessageId) {
+      const existing = this.messages.find((m) => m.id === this.retryMessageId);
+      if (existing) {
+        existing.text = text;
+        this.setStatus(status);
+        // setStatus already notifies; ensure message update notifies too
+        if (this.status !== status) this.notify();
+        else this.notify();
+        return;
+      }
+    }
+    const id = nextId();
+    this.retryMessageId = id;
+    this.messages.push({
+      id,
+      role: "system",
+      text,
+      thinking: "",
+      thinkingOpen: false,
+      toolCalls: [],
+      finished: true,
+    });
+    this.setStatus(status);
+  }
+
+  clearRetry(): void {
+    this.retryMessageId = null;
+  }
+
   clear(): void {
     this.messages.length = 0;
     this.notify();
@@ -187,6 +222,7 @@ export class UiStore {
 export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
   switch (event.type) {
     case "thinking-start":
+      store.clearRetry();
       store.think("");
       break;
     case "thinking-delta":
@@ -196,6 +232,7 @@ export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
       store.endThinking();
       break;
     case "text-start":
+      store.clearRetry();
       store.text("");
       break;
     case "text-delta":
@@ -212,25 +249,29 @@ export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
       store.toolEnd(event.id);
       break;
     case "finish":
+      store.clearRetry();
       store.finish();
       break;
     case "status":
+      store.clearRetry();
       store.addSystemMessage(event.message);
       store.setStatus(event.message);
       break;
     case "compaction_start":
+      store.clearRetry();
       store.addSystemMessage("ⓘ Compacting conversation…");
       store.setStatus("Compacting conversation…");
       break;
     case "compaction_end":
+      store.clearRetry();
       store.addSystemMessage(`✦ Conversation compacted (tokens: ${event.tokensBefore} → ${event.tokensAfter}). \nTokens Saved: ${event.tokensBefore - event.tokensAfter}`);
       store.setStatus("");
       break;
     case "retry":
-      store.addSystemMessage(`ⓘ ${event.reason}`);
-      store.setStatus(`Retrying in ${Math.ceil(event.delaySeconds)}s...`);
+      store.upsertRetryMessage(event.reason, Math.ceil(event.delaySeconds));
       break;
     case "error":
+      store.clearRetry();
       store.finish();
       store.pushError(event.error);
       break;

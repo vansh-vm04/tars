@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { App } from "./App.js";

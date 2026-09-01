@@ -2,6 +2,52 @@
 
 TARS is a terminal-based AI coding agent built with TypeScript and Node.js. It uses the Gemini API to understand tasks, inspect codebases, modify files, execute commands, and verify changes through an interactive terminal UI powered by OpenTUI.
 
+## Installation — No Setup Required
+
+TARS standalone binaries include the Bun runtime — you do **not** need to install Bun, Node.js, npm, Git, or clone the repository.
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vansh-vm04/tars/main/install.sh | sh
+```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/vansh-vm04/tars/main/install.ps1 | iex
+```
+
+Then run:
+
+```bash
+tars
+```
+
+Re-run the same command anytime to update to the latest release.
+
+**Supported platforms**
+
+| Platform | Binary | Installer |
+|---|---|---|
+| macOS Apple Silicon | `tars-darwin-arm64` | `install.sh` |
+| macOS Intel | `tars-darwin-x64` | `install.sh` |
+| Linux x64 | `tars-linux-x64` | `install.sh` |
+| Linux ARM64 | `tars-linux-arm64` | `install.sh` |
+| Windows x64 | `tars-windows-x64.exe` | `install.ps1` |
+
+Installs to `~/.local/bin/tars` (macOS/Linux) or `%LOCALAPPDATA%\tars\tars.exe` (Windows) and ensures the directory is on your `PATH`. No `sudo` required.
+
+**Alternative — npm** (requires Node.js, not required for standalone):
+
+```bash
+npm i -g tars
+# or
+npx tars
+```
+
+> **Note:** Standalone binaries are built with `bun build --compile` and already contain the Bun runtime. Verified with OpenTUI 0.5.6 — native Zig core is bundled. Cross-compilation via `bun --target` is used in CI (single `ubuntu-latest` runner builds all 5 targets without needing a local macOS/Linux machine).
+
 ## Tech Stack
 
 * TypeScript

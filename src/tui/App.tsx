@@ -12,6 +12,7 @@ import {
   AgentPicker,
   COLORS,
 } from "./components/index.js";
+import { BootAnimation } from "./components/BootAnimation.js";
 import { readAuth, saveAuth } from "../storage/auth.js";
 import { readConfig, saveConfig } from "../storage/config.js";
 import { getAvailableModels } from "../providers/models.js";
@@ -30,6 +31,7 @@ export type AppProps = {
 
 export const App = ({ onExit }: AppProps) => {
   const ui = useMemo(() => new UiStore(), []);
+  const [introDone, setIntroDone] = useState(false);
   const [stage, setStage] = useState<Stage>("loading");
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [auth, setAuth] = useState<AuthConfig | null>(null);
@@ -219,6 +221,11 @@ export const App = ({ onExit }: AppProps) => {
     [agent, ui, handleCommand],
   );
 
+  // Intro boot animation — always shown first on startup
+  if (!introDone) {
+    return <BootAnimation onComplete={() => setIntroDone(true)} />;
+  }
+
   if (stage === "loading") {
     return (
       <box
@@ -298,7 +305,7 @@ export const App = ({ onExit }: AppProps) => {
     >
       <Header sessionName={sessionName} />
       <box flexGrow={1} width="100%" flexDirection="column" overflow="hidden">
-        <MessageList store={ui} />
+        <MessageList store={ui} model={model} />
       </box>
       <Composer
         store={ui}

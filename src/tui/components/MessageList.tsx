@@ -3,6 +3,7 @@ import { useStoreVersion } from "../use-store.js";
 import { COLORS } from "../theme.js";
 import { markdownSyntaxStyle, thinkingMarkdownSyntaxStyle } from "../theme.js";
 import { StatusIndicator } from "./StatusIndicator.js";
+import { Welcome } from "./Welcome.js";
 
 type MessageProps = {
   message: ViewMessage;
@@ -30,7 +31,7 @@ const ThinkingBlock = ({
 );
 
 const ToolCallRow = ({ tool }: { tool: ViewMessage["toolCalls"][number] }) => (
-  <box flexDirection="row" marginY={1} gap={1}>
+  <box flexDirection="row" gap={1}>
     {tool.status === "running" ? (
       <StatusIndicator label="" color={COLORS.amber} />
     ) : (
@@ -101,10 +102,22 @@ const Message = ({ message }: MessageProps) => {
 
 export type MessageListProps = {
   store: import("../store.js").UiStore;
+  model?: string | undefined;
 };
 
-export const MessageList = ({ store }: MessageListProps) => {
+export const MessageList = ({ store, model }: MessageListProps) => {
   useStoreVersion(store);
+
+  // Show welcoming placeholder until first user prompt — then chat takes over
+  if (store.messages.length === 0) {
+    return (
+      <box width="100%" flexGrow={1} flexDirection="column" overflow="hidden">
+        <scrollbox width="100%" flexGrow={1}>
+          <Welcome model={model} />
+        </scrollbox>
+      </box>
+    );
+  }
 
   return (
     <scrollbox

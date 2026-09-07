@@ -12,9 +12,10 @@ jobs:
   build:
     name: Build and Release
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -27,46 +28,73 @@ jobs:
       - name: Build binaries
         run: |
           set -euo pipefail
+
           echo "Building TARS standalone binaries..."
           echo "Bun version: $(bun --version)"
           echo "Target version: ${GITHUB_REF_NAME}"
 
           # Verify entry point exists
-          test -f src/tui/tui.tsx || { echo "Entry src/tui/tui.tsx not found"; exit 1; }
+          test -f src/tui/tui.tsx || {
+            echo "Entry src/tui/tui.tsx not found"
+            exit 1
+          }
 
           # macOS Apple Silicon
-          echo "→ Building tars-darwin-arm64 (bun-darwin-arm64)..."
-          bun build ./src/tui/tui.tsx --compile --target=bun-darwin-arm64 --outfile tars-darwin-arm64
-          test -f tars-darwin-arm64 || { echo "Failed to build darwin-arm64"; exit 1; }
+          echo "→ Building tars-darwin-arm64..."
+          bun build ./src/tui/tui.tsx \
+            --compile \
+            --target=bun-darwin-arm64 \
+            --outfile tars-darwin-arm64
+
+          test -f tars-darwin-arm64
 
           # macOS Intel
-          echo "→ Building tars-darwin-x64 (bun-darwin-x64)..."
-          bun build ./src/tui/tui.tsx --compile --target=bun-darwin-x64 --outfile tars-darwin-x64
-          test -f tars-darwin-x64 || { echo "Failed to build darwin-x64"; exit 1; }
+          echo "→ Building tars-darwin-x64..."
+          bun build ./src/tui/tui.tsx \
+            --compile \
+            --target=bun-darwin-x64 \
+            --outfile tars-darwin-x64
+
+          test -f tars-darwin-x64
 
           # Linux x64
-          echo "→ Building tars-linux-x64 (bun-linux-x64)..."
-          bun build ./src/tui/tui.tsx --compile --target=bun-linux-x64 --outfile tars-linux-x64
-          test -f tars-linux-x64 || { echo "Failed to build linux-x64"; exit 1; }
+          echo "→ Building tars-linux-x64..."
+          bun build ./src/tui/tui.tsx \
+            --compile \
+            --target=bun-linux-x64 \
+            --outfile tars-linux-x64
+
+          test -f tars-linux-x64
 
           # Linux ARM64
-          echo "→ Building tars-linux-arm64 (bun-linux-arm64)..."
-          bun build ./src/tui/tui.tsx --compile --target=bun-linux-arm64 --outfile tars-linux-arm64
-          test -f tars-linux-arm64 || { echo "Failed to build linux-arm64"; exit 1; }
+          echo "→ Building tars-linux-arm64..."
+          bun build ./src/tui/tui.tsx \
+            --compile \
+            --target=bun-linux-arm64 \
+            --outfile tars-linux-arm64
+
+          test -f tars-linux-arm64
 
           # Windows x64
-          echo "→ Building tars-windows-x64.exe (bun-windows-x64)..."
-          bun build ./src/tui/tui.tsx --compile --target=bun-windows-x64 --outfile tars-windows-x64.exe
-          test -f tars-windows-x64.exe || { echo "Failed to build windows-x64"; exit 1; }
+          echo "→ Building tars-windows-x64.exe..."
+          bun build ./src/tui/tui.tsx \
+            --compile \
+            --target=bun-windows-x64 \
+            --outfile tars-windows-x64.exe
+
+          test -f tars-windows-x64.exe
 
           echo "All binaries built:"
           ls -lh tars-*
 
           # Generate checksums
           echo "Generating checksums..."
-          sha256sum tars-darwin-arm64 tars-darwin-x64 tars-linux-x64 tars-linux-arm64 tars-windows-x64.exe > checksums.txt || shasum -a 256 tars-* > checksums.txt
+          sha256sum tars-* > checksums.txt
+
+          echo "Checksums:"
           cat checksums.txt
-          ls -lh checksums.txt
+
+          echo "Build completed successfully."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

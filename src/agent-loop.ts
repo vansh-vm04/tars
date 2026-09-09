@@ -77,12 +77,30 @@ export const runAgentLoop = async (
   });
 
   let finalResponse = "";
+  let lastResult: { message: string; isError: boolean } | null = null;
 
   while (true) {
     const turn = await streamTurn();
 
     if (turn.isError) {
       await persistNewMessages();
+      const pending = context.pendingMessages;
+      if (pending && pending.length > 0) {
+        const toAdd = pending.splice(0);
+        for (const msg of toAdd) {
+          newMessages.push({
+            type: "message",
+            id: crypto.randomUUID(),
+            role: "user",
+            content: [{ type: "text", text: msg }],
+            timestamp: Date.now(),
+          });
+        }
+        await compactIfNeeded();
+        finalResponse = turn.error;
+        lastResult = { message: finalResponse, isError: true };
+        continue;
+      }
       return {
         finalResponse: turn.error,
         updatedMessages: [...oldMessages, ...savedMessages],
@@ -154,7 +172,7 @@ export const runAgentLoop = async (
       // Check and compact the conversation after all tool calls and results
       await compactIfNeeded();
     } else {
-      // no tool calls, return the response
+      // no tool calls — final response for the current user turn
       newMessages.push({
         type: "message",
         id: crypto.randomUUID(),
@@ -162,15 +180,37 @@ export const runAgentLoop = async (
         content: turn.parts,
       });
       finalResponse = turn.text;
+      lastResult = { message: finalResponse, isError: false };
+      await persistNewMessages();
+
+      // If there are pending messages queued while this iteration was running,
+      // drain all at once into the next iteration.
+      const pending = context.pendingMessages;
+      if (pending && pending.length > 0) {
+        const toAdd = pending.splice(0);
+        for (const msg of toAdd) {
+          newMessages.push({
+            type: "message",
+            id: crypto.randomUUID(),
+            role: "user",
+            content: [{ type: "text", text: msg }],
+            timestamp: Date.now(),
+          });
+        }
+        await compactIfNeeded();
+        continue;
+      }
+
       break;
     }
   }
 
+  // Final persist (in case the last turn was just persisted, this is no-op)
   await persistNewMessages();
 
   return {
-    finalResponse,
+    finalResponse: lastResult?.message ?? finalResponse,
     updatedMessages: [...oldMessages, ...savedMessages],
-    isError: false,
+    isError: lastResult?.isError ?? false,
   };
 };

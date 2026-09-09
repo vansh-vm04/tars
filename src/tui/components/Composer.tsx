@@ -22,7 +22,10 @@ export type ComposerProps = {
 export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) => {
   useStoreVersion(store);
   const textareaRef = useRef<TextareaRenderable>(null);
-  const disabled = store.streaming;
+  const isStreaming = store.streaming;
+  const queuedCount = store.queuedCount;
+  // Allow typing queued prompts while streaming; only block command palette when busy
+  const commandPaletteDisabled = isStreaming;
 
   const [query, setQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -33,7 +36,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
   useEffect(() => {
     const id = setInterval(() => {
       const txt = textareaRef.current?.plainText ?? "";
-      if (!disabled && txt.startsWith("/")) {
+      if (!commandPaletteDisabled && txt.startsWith("/")) {
         const q = txt.trim().split(/\s+/)[0] ?? "/";
         setQuery((prev) => (prev !== q ? q : prev));
       } else {
@@ -56,7 +59,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
       setInputHeight((prev) => (prev !== clamped ? clamped : prev));
     }, 50);
     return () => clearInterval(id);
-  }, [disabled, dimensions.width]);
+  }, [commandPaletteDisabled, dimensions.width]);
 
   const filteredCommands = useMemo(() => {
     if (query === null) return [];
@@ -72,7 +75,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
   useKeyboard(
     useCallback(
       (key) => {
-        if (filteredCommands.length === 0 || disabled) return;
+        if (filteredCommands.length === 0 || commandPaletteDisabled) return;
         if (key.name === "up") {
           setSelectedIndex((s) => (s - 1 + filteredCommands.length) % filteredCommands.length);
         } else if (key.name === "down") {
@@ -85,7 +88,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
           setQuery(null);
         }
       },
-      [filteredCommands, disabled],
+      [filteredCommands, commandPaletteDisabled],
     ),
   );
 
@@ -122,7 +125,9 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
     }
   }, [onSubmit, filteredCommands, selectedIndex]);
 
-  const showDropdown = filteredCommands.length > 0 && !disabled;
+  const showDropdown = filteredCommands.length > 0 && !commandPaletteDisabled;
+
+  const borderColor = isStreaming ? COLORS.amber : COLORS.border;
 
   return (
     <box
@@ -130,7 +135,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
       flexDirection="column"
       border
       borderStyle="rounded"
-      borderColor={disabled ? COLORS.dim : COLORS.border}
+      borderColor={borderColor}
       backgroundColor={COLORS.bg}
       paddingX={1}
       flexShrink={0}
@@ -169,11 +174,15 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
       <textarea
         ref={textareaRef}
         onSubmit={submit}
-        placeholder={`  Can’t fix your relationship. Let me do the code.`}
+        placeholder={
+          isStreaming
+            ? `  Working… type to queue next message…`
+            : `  Can’t fix your relationship. Let me do the code.`
+        }
         width="100%"
         height={inputHeight}
         wrapMode="word"
-        focused={!disabled}
+        focused
         keyBindings={[
           { name: "return", action: "submit" },
           { name: "kpenter", action: "submit" },
@@ -181,6 +190,12 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
           { name: "return", shift: true, action: "newline" },
         ]}
       />
+
+      {isStreaming && queuedCount > 0 && (
+        <box width="100%" paddingY={1}>
+          <text fg={COLORS.dim}>add messages in between agent will process once this iteration is finished</text>
+        </box>
+      )}
 
       <box
         width="100%"
@@ -198,7 +213,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
           <text fg={COLORS.dim}>·</text>
           <text fg={agentMode === "plan" ? COLORS.amber : COLORS.blue}>{agentMode?.toUpperCase() || "BUILD"}</text>
         </box>
-        <text fg={COLORS.dim}>type / for commands</text>
+        <text fg={COLORS.dim}>{isStreaming ? "↵ queue" : "type / for commands"}</text>
       </box>
     </box>
   );

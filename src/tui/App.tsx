@@ -51,6 +51,16 @@ export const App = ({ onExit }: AppProps) => {
         provider,
       );
       nextAgent.onEvent((event) => applyAgentEvent(ui, event));
+      nextAgent.onQueueChange(() => {
+        ui.setQueuedCount(nextAgent.queueLength);
+        ui.setStreaming(nextAgent.busy);
+        // Always just show working when busy, even with pending — no queued count in status
+        if (nextAgent.busy) {
+          ui.setStatus("working…");
+        } else {
+          ui.setStatus("");
+        }
+      });
       setAgent(nextAgent);
       setModel(nextAgent.modelName);
       setAgentMode(nextAgent.mode);
@@ -196,12 +206,29 @@ export const App = ({ onExit }: AppProps) => {
   const handleSubmit = useCallback(
     (input: string, tag: "command" | "prompt") => {
       if (tag === "command") {
+        if (ui.streaming) {
+          ui.addSystemMessage("Commands are paused while the agent is working — queued prompts are allowed. Wait for idle to run commands.");
+          return;
+        }
         handleCommand(input);
         return;
       }
       const current = agent;
       if (!current) return;
+
+      const wasBusy = current.busy;
       ui.addUserMessage(input);
+
+      if (wasBusy) {
+        void current.prompt(input);
+        ui.setStreaming(true);
+        // Keep status as working — helper text explains queuing
+        ui.setQueuedCount(current.queueLength);
+        ui.setStatus("working…");
+        return;
+      }
+
+      // Not busy — start a new loop with this message
       ui.setStreaming(true);
       ui.setStatus("working…");
       void current
@@ -214,8 +241,15 @@ export const App = ({ onExit }: AppProps) => {
           ui.pushError(String(error));
         })
         .finally(() => {
-          ui.setStreaming(false);
-          ui.setStatus("");
+          if (!current.busy && current.queueLength === 0) {
+            ui.setStreaming(false);
+            ui.setQueuedCount(0);
+            ui.setStatus("");
+          } else {
+            ui.setStreaming(true);
+            ui.setQueuedCount(current.queueLength);
+            ui.setStatus("working…");
+          }
         });
     },
     [agent, ui, handleCommand],

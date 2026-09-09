@@ -10,6 +10,12 @@ export interface Tool {
   execute: (args: Record<string, any>) => Promise<ToolExecutionResult>;
 }
 
+export type QueuedEntry = {
+  userMessage: string;
+  resolve: (value: { message: string; isError: boolean }) => void;
+  reject: (reason: unknown) => void;
+};
+
 export interface AgentLoopContext {
   model: string;
   provider: Provider;
@@ -24,6 +30,7 @@ export interface AgentLoopContext {
     messages: (AgentMessage | SessionMessageEntry)[],
   ) => Promise<SessionMessageEntry[]>;
   onEvent?: (event: AgentEvent) => void;
+  pendingMessages?: string[];
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;

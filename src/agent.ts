@@ -23,6 +23,9 @@ export class Agent {
   private sessionManager: SessionManager;
   private eventHandlers: ((event: AgentEvent) => void)[] = [];
   private _mode: AgentMode = "build";
+  private isProcessing = false;
+  private pendingMessages: string[] = [];
+  private queueListeners = new Set<(count: number) => void>();
 
   constructor(model: string, config: AgentConfig, provider: Provider) {
     this.messages = config.messages || [];
@@ -65,6 +68,28 @@ export class Agent {
     this._mode = value;
   }
 
+  get queueLength(): number {
+    return this.pendingMessages.length;
+  }
+
+  get busy(): boolean {
+    return this.isProcessing;
+  }
+
+  onQueueChange(handler: (count: number) => void): () => void {
+    this.queueListeners.add(handler);
+    return () => this.queueListeners.delete(handler);
+  }
+
+  private notifyQueue(): void {
+    const count = this.pendingMessages.length;
+    for (const h of this.queueListeners) h(count);
+  }
+
+  get pendingMessagesRef(): string[] {
+    return this.pendingMessages;
+  }
+
   allSessions(): Promise<Session[]> {
     return this.sessionManager.listSessions();
   }
@@ -89,6 +114,17 @@ export class Agent {
   async prompt(
     userMessage: string,
   ): Promise<{ message: string; isError: boolean }> {
+
+    if (this.isProcessing) {
+      this.pendingMessages.push(userMessage);
+      this.notifyQueue();
+      return { message: "queued", isError: false };
+    }
+
+    this.isProcessing = true;
+    this.notifyQueue();
+
+    // Ensure session exists for the first message
     if (!this.sessionManager.currentSession) {
       await this.sessionManager.create(
         this.provider,
@@ -100,26 +136,40 @@ export class Agent {
         userMessage,
       );
     }
+
     const { systemPrompt, tools } = MODE_CONFIG[this._mode];
-    const response = await runAgentLoop({
-      model: this.model,
-      provider: this.provider,
-      userMessage,
-      systemPrompt,
-      messages: this.messagesList,
-      tools,
-      shouldCompact: (messages) => this.contextManager.shouldCompact(messages),
-      compact: (messages) =>
-        this.contextManager.compact(messages, this.provider, this.model),
-      estimateTokenCount: (messages) => this.contextManager.estimateTokenCount(messages),
-      saveMessage: (messages) => this.sessionManager.saveMessage(messages),
-      onEvent: (event) => {
-        for (const handler of this.eventHandlers) handler(event);
-      },
-    });
 
-    this.messagesList = response.updatedMessages;
+    try {
+      const response = await runAgentLoop({
+        model: this.model,
+        provider: this.provider,
+        userMessage,
+        systemPrompt,
+        messages: this.messagesList,
+        tools,
+        shouldCompact: (messages) => this.contextManager.shouldCompact(messages),
+        compact: (messages) =>
+          this.contextManager.compact(messages, this.provider, this.model),
+        estimateTokenCount: (messages) => this.contextManager.estimateTokenCount(messages),
+        saveMessage: (messages) => this.sessionManager.saveMessage(messages),
+        onEvent: (event) => {
+          for (const handler of this.eventHandlers) handler(event);
+        },
+        // Pass pending array by reference, inner loop will check and drain it
+        pendingMessages: this.pendingMessages,
+      });
 
-    return { message: response.finalResponse || "", isError: response.isError };
+      this.messagesList = response.updatedMessages;
+      return { message: response.finalResponse || "", isError: response.isError };
+    } finally {
+      this.isProcessing = false;
+      this.notifyQueue();
+      // New message queued after inner loop's last check but before we cleared flag
+      if (this.pendingMessages.length > 0) {
+        const next = this.pendingMessages.shift()!;
+        this.notifyQueue();
+        void this.prompt(next).catch(() => {});
+      }
+    }
   }
 }

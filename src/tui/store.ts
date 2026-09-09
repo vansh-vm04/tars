@@ -8,6 +8,7 @@ export class UiStore {
   readonly messages: ViewMessage[] = [];
   streaming = false;
   status = "";
+  queuedCount = 0;
   private version = 0;
   private listeners = new Set<() => void>();
 
@@ -73,6 +74,12 @@ export class UiStore {
   setStatus(status: string): void {
     if (this.status === status) return;
     this.status = status;
+    this.notify();
+  }
+
+  setQueuedCount(count: number): void {
+    if (this.queuedCount === count) return;
+    this.queuedCount = count;
     this.notify();
   }
 

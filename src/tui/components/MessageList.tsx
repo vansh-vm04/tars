@@ -30,16 +30,77 @@ const ThinkingBlock = ({
   </box>
 );
 
+const ToolDiff = ({ tool }: { tool: ViewMessage["toolCalls"][number] }) => {
+  const diff = tool.diff;
+  if (!diff) return null;
+  const isBash = tool.name === "bash";
+  const isEdit = tool.name === "edit";
+  const isWrite = tool.name === "write";
+  if (!isBash && !isEdit && !isWrite) return null;
+
+  // Grayed code-like box — single boxed command for bash, no duplicate header
+  return (
+    <box flexDirection="column" marginTop={1} gap={0} width="100%" paddingLeft={1}>
+      {!isBash && (
+        <box flexDirection="row" gap={1} alignItems="center" marginBottom={1}>
+          <text fg={COLORS.dim}>·</text>
+          <text fg={COLORS.cyan}>{diff.path}</text>
+          <text fg={COLORS.dim}>{isEdit ? "edit" : "write"}</text>
+        </box>
+      )}
+
+      <box
+        flexDirection="column"
+        backgroundColor={COLORS.selection}
+        paddingX={1}
+        paddingY={1}
+        gap={0}
+        width="100%"
+      >
+        {!isBash ? (
+          <>
+            {diff.oldLines.slice(0, 6).map((line, i) => (
+              <text key={`o-${i}`} fg={COLORS.red}>
+                {"- " + (line.length > 86 ? line.slice(0, 86) + "…" : line || " ")}
+              </text>
+            ))}
+            {diff.newLines.slice(0, 6).map((line, i) => (
+              <text key={`n-${i}`} fg={COLORS.green}>
+                {"+ " + (line.length > 86 ? line.slice(0, 86) + "…" : line || " ")}
+              </text>
+            ))}
+            {(diff.oldLines.length > 6 || diff.newLines.length > 6) && (
+              <text fg={COLORS.dim}>… {diff.oldLines.length + diff.newLines.length - 12 > 0 ? `+${diff.oldLines.length + diff.newLines.length - 12} more` : "truncated"}</text>
+            )}
+          </>
+        ) : (
+          <>
+            {diff.newLines.slice(0, 5).map((line, i) => (
+              <text key={`b-${i}`} fg={i === 0 ? COLORS.cyan : COLORS.dim}>
+                {i === 0 ? "$ " + line : line.length > 86 ? line.slice(0, 86) + "…" : line}
+              </text>
+            ))}
+            {diff.newLines.length > 5 && <text fg={COLORS.dim}>… +{diff.newLines.length - 5} more</text>}
+          </>
+        )}
+      </box>
+    </box>
+  );
+};
+
 const ToolCallRow = ({ tool }: { tool: ViewMessage["toolCalls"][number] }) => (
-  <box flexDirection="row" gap={1}>
-    {tool.status === "running" ? (
-      <StatusIndicator label="" color={COLORS.amber} />
-    ) : (
-      <text fg={COLORS.green}>✓ </text>
-    )}
-    <text fg={tool.status === "running" ? COLORS.amber : COLORS.green}>
-      {tool.label}
-    </text>
+  <box flexDirection="column" gap={0} width="100%" marginY={1}>
+    <box flexDirection="row" gap={1} alignItems="center">
+      {tool.status === "running" ? (
+        <StatusIndicator label="" color={COLORS.amber} />
+      ) : (
+        <text fg={COLORS.green}>✓ </text>
+      )}
+      <text fg={tool.status === "running" ? COLORS.amber : COLORS.green}>
+        {tool.diff ? tool.name : tool.label}
+      </text>
+    </box>
+    <ToolDiff tool={tool} />
   </box>
 );
 

@@ -160,6 +160,8 @@ export class UiStore {
                 name: c.name,
                 label: describeToolCall(c.name, c.arguments),
                 status: "done",
+                args: c.arguments,
+                diff: buildDiff(c.name, c.arguments),
               });
             }
           }
@@ -211,17 +213,25 @@ export class UiStore {
     this.notify();
   }
 
-  tool(id: string, name: string, label: string): void {
+  tool(id: string, name: string, label: string, args?: Record<string, unknown>): void {
     const message = this.ensureAssistant();
-    message.toolCalls.push({ id, name, label, status: "running" });
+    const diff = buildDiff(name, args);
+    message.toolCalls.push({ id, name, label, status: "running", args, diff });
     this.notify();
   }
 
-  toolEnd(id: string): void {
+  toolEnd(id: string, args?: Record<string, unknown>): void {
     const message = this.messages[this.messages.length - 1];
     if (!message) return;
     const call = message.toolCalls.find((c) => c.id === id);
-    if (call) call.status = "done";
+    if (call) {
+      call.status = "done";
+      // Update diff with latest args if provided (e.g., bash output not needed)
+      if (args && !call.diff) {
+        call.diff = buildDiff(call.name, args);
+        call.args = args;
+      }
+    }
     this.notify();
   }
 }
@@ -249,11 +259,11 @@ export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
       break;
     case "tool-call-start": {
       const label = describeToolCall(event.name, event.arguments);
-      store.tool(event.id, event.name, label);
+      store.tool(event.id, event.name, label, event.arguments);
       break;
     }
     case "tool-call-end":
-      store.toolEnd(event.id);
+      store.toolEnd(event.id, event.arguments);
       break;
     case "finish":
       store.clearRetry();
@@ -283,6 +293,36 @@ export const applyAgentEvent = (store: UiStore, event: AgentEvent): void => {
       store.pushError(event.error);
       break;
   }
+};
+
+const buildDiff = (
+  name: string,
+  args?: Record<string, unknown>,
+): { path: string; oldLines: string[]; newLines: string[] } | null => {
+  if (!args) return null;
+  const MAX_LINES = 10;
+  const truncate = (lines: string[]) =>
+    lines.length > MAX_LINES ? [...lines.slice(0, MAX_LINES), `… +${lines.length - MAX_LINES} more`] : lines;
+
+  if (name === "edit" && typeof args.path === "string") {
+    const oldText = typeof args.oldText === "string" ? args.oldText : "";
+    const newText = typeof args.newText === "string" ? args.newText : "";
+    const oldLines = truncate(oldText.split("\n"));
+    const newLines = truncate(newText.split("\n"));
+    // Limit total to avoid huge diffs
+    return { path: String(args.path), oldLines, newLines };
+  }
+  if (name === "write" && typeof args.path === "string") {
+    const content = typeof args.content === "string" ? args.content : "";
+    const newLines = truncate(content.split("\n"));
+    return { path: String(args.path), oldLines: [], newLines };
+  }
+  if (name === "bash" && typeof args.command === "string") {
+    const cmd = String(args.command).trim();
+    const lines = truncate(cmd.split("\n"));
+    return { path: "bash", oldLines: [], newLines: lines };
+  }
+  return null;
 };
 
 const describeToolCall = (

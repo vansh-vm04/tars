@@ -7,16 +7,24 @@ const MAX_TOTAL_RETRY_TIME_MS = 120000; // Maximum total time to spend retrying 
 export const callLLMStream = async function* (
   provider: Provider,
   input: LLMInput,
+  opts?: { signal?: AbortSignal | undefined },
 ): AsyncGenerator<LLMStreamEvent, void, unknown> {
+  const signal = opts?.signal;
   let lastErrorMessage = "An unknown error occurred.";
   const startedAt = Date.now();
 
+  const checkAbort = () => {
+    if (signal?.aborted) throw new AbortError("Aborted");
+  };
+
   while (Date.now() - startedAt <= MAX_TOTAL_RETRY_TIME_MS) {
+    checkAbort();
     let yieldedContent = false;
     try {
       const stream = provider.chatStream(input);
 
       for await (const event of stream) {
+        checkAbort();
         if (event.type === "error") {
           if (event.isRetryable && !yieldedContent) {
             throw new RetryableError(
@@ -34,6 +42,7 @@ export const callLLMStream = async function* (
 
       return;
     } catch (error) {
+      if (error instanceof AbortError || signal?.aborted) throw error;
       lastErrorMessage =
         error instanceof Error ? error.message : "An unknown error occurred.";
 
@@ -49,6 +58,7 @@ export const callLLMStream = async function* (
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = MAX_TOTAL_RETRY_TIME_MS - elapsedMs;
 
+      if (signal?.aborted) throw new AbortError("Aborted");
       if (!isRetryable || yieldedContent || remainingMs <= 0) {
         yield {
           type: "error",
@@ -69,9 +79,11 @@ export const callLLMStream = async function* (
       // Live countdown — emit an updated retry every second so the
       // message box and status show decreasing seconds
       while (remainingMsRetry > 0) {
+        checkAbort();
         const step = Math.min(1000, remainingMsRetry);
-        await sleep(step);
+        await sleep(step, signal);
         remainingMsRetry -= step;
+        checkAbort();
         if (remainingMsRetry > 0) {
           yield {
             type: "retry",
@@ -99,6 +111,24 @@ class RetryableError extends Error {
   }
 }
 
-const sleep = async (ms: number): Promise<void> => {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+class AbortError extends Error {
+  constructor(message = "Aborted") {
+    super(message);
+    this.name = "AbortError";
+  }
+}
+
+const sleep = async (ms: number, signal?: AbortSignal): Promise<void> => {
+  if (signal?.aborted) throw new AbortError();
+  await new Promise<void>((resolve, reject) => {
+    const id = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(id);
+        reject(new AbortError());
+      },
+      { once: true },
+    );
+  });
 };

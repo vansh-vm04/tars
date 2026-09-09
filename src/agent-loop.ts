@@ -50,17 +50,27 @@ export const runAgentLoop = async (
   const streamTurn = async () => {
     const stream = new AgentEventStream(onEvent);
     try {
-      for await (const event of callLLMStream(provider, {
-        model,
-        systemPrompt,
-        messages: toAgentMessages(allMessages()),
-        tools,
-      })) {
+      const opts = context.abortSignal ? { signal: context.abortSignal } : undefined;
+      for await (const event of callLLMStream(
+        provider,
+        {
+          model,
+          systemPrompt,
+          messages: toAgentMessages(allMessages()),
+          tools,
+        },
+        opts,
+      )) {
+        if (context.abortSignal?.aborted) throw new Error("Aborted");
         stream.push(event);
       }
       stream.end();
     } catch (err) {
-      stream.error(err instanceof Error ? err : new Error("Unknown stream error."));
+      if ((err as any)?.name === "AbortError" || context.abortSignal?.aborted) {
+        stream.error(new Error("Aborted"));
+      } else {
+        stream.error(err instanceof Error ? err : new Error("Unknown stream error."));
+      }
     }
     return stream.result();
   };

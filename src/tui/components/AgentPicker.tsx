@@ -27,7 +27,6 @@ export const AgentPicker = ({ currentMode, onPick, onCancel }: AgentPickerProps)
     useCallback(
       (key) => {
         if (key.name === "escape") onCancel();
-        if (key.name === "c" && key.ctrl) onCancel();
       },
       [onCancel],
     ),

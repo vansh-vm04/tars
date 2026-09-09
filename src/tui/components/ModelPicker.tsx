@@ -16,7 +16,6 @@ export const ModelPicker = ({ models, onPick, onCancel }: ModelPickerProps) => {
     useCallback(
       (key) => {
         if (key.name === "escape") onCancel();
-        if (key.name === "c" && key.ctrl) onCancel();
       },
       [onCancel],
     ),

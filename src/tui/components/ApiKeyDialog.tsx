@@ -14,7 +14,6 @@ export const ApiKeyDialog = ({ onSubmit, onCancel }: ApiKeyDialogProps) => {
     useCallback(
       (key) => {
         if (key.name === "escape") onCancel();
-        if (key.name === "c" && key.ctrl) onCancel();
       },
       [onCancel],
     ),

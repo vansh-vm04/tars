@@ -31,6 +31,7 @@ export interface AgentLoopContext {
   ) => Promise<SessionMessageEntry[]>;
   onEvent?: (event: AgentEvent) => void;
   pendingMessages?: string[];
+  abortSignal?: AbortSignal;
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage;

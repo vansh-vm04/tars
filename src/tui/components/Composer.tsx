@@ -17,9 +17,10 @@ export type ComposerProps = {
   model: string;
   agentMode: string;
   onSubmit: SubmitHandler;
+  onInterrupt?: () => void;
 };
 
-export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) => {
+export const Composer = ({ store, model, agentMode, onSubmit, onInterrupt }: ComposerProps) => {
   useStoreVersion(store);
   const textareaRef = useRef<TextareaRenderable>(null);
   const isStreaming = store.streaming;
@@ -89,6 +90,22 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
         }
       },
       [filteredCommands, commandPaletteDisabled],
+    ),
+  );
+
+  // ESC to interrupt while streaming
+  useKeyboard(
+    useCallback(
+      (key) => {
+        if (key.name === "escape" && isStreaming) {
+          // If dropdown is open, let the dropdown handler close it first.
+          // Only interrupt when no dropdown is visible.
+          if (filteredCommands.length === 0) {
+            onInterrupt?.();
+          }
+        }
+      },
+      [isStreaming, filteredCommands.length, onInterrupt],
     ),
   );
 
@@ -213,7 +230,7 @@ export const Composer = ({ store, model, agentMode, onSubmit }: ComposerProps) =
           <text fg={COLORS.dim}>·</text>
           <text fg={agentMode === "plan" ? COLORS.amber : COLORS.blue}>{agentMode?.toUpperCase() || "BUILD"}</text>
         </box>
-        <text fg={COLORS.dim}>{isStreaming ? "↵ queue" : "type / for commands"}</text>
+        <text fg={COLORS.dim}>{isStreaming ? "esc to interrupt · ↵ queue" : "type / for commands"}</text>
       </box>
     </box>
   );

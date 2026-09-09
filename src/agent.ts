@@ -26,6 +26,7 @@ export class Agent {
   private isProcessing = false;
   private pendingMessages: string[] = [];
   private queueListeners = new Set<(count: number) => void>();
+  private abortController: AbortController | null = null;
 
   constructor(model: string, config: AgentConfig, provider: Provider) {
     this.messages = config.messages || [];
@@ -90,6 +91,13 @@ export class Agent {
     return this.pendingMessages;
   }
 
+  interrupt(): void {
+    // Signal the inner loop to stop after current turn and clear queued messages
+    this.abortController?.abort();
+    this.pendingMessages.length = 0;
+    this.notifyQueue();
+  }
+
   allSessions(): Promise<Session[]> {
     return this.sessionManager.listSessions();
   }
@@ -123,6 +131,7 @@ export class Agent {
 
     this.isProcessing = true;
     this.notifyQueue();
+    this.abortController = new AbortController();
 
     // Ensure session exists for the first message
     if (!this.sessionManager.currentSession) {
@@ -157,11 +166,17 @@ export class Agent {
         },
         // Pass pending array by reference, inner loop will check and drain it
         pendingMessages: this.pendingMessages,
+        abortSignal: this.abortController.signal,
       });
 
       this.messagesList = response.updatedMessages;
+      // If aborted, surface as interrupted
+      if (response.isError && response.finalResponse === "__ABORTED__") {
+        return { message: "Interrupted", isError: true };
+      }
       return { message: response.finalResponse || "", isError: response.isError };
     } finally {
+      this.abortController = null;
       this.isProcessing = false;
       this.notifyQueue();
       // New message queued after inner loop's last check but before we cleared flag

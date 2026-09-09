@@ -79,24 +79,44 @@ export const runAgentLoop = async (
   let finalResponse = "";
   let lastResult: { message: string; isError: boolean } | null = null;
 
+  const abortResponse = async (): Promise<AgentLoopResponse> => {
+    await persistNewMessages();
+    context.pendingMessages?.splice(0);
+    return {
+      finalResponse: "__ABORTED__",
+      updatedMessages: [...oldMessages, ...savedMessages],
+      isError: true,
+    };
+  };
+
+  const drainPending = async (): Promise<boolean> => {
+    const pending = context.pendingMessages;
+    if (!pending || pending.length === 0) return false;
+    const toAdd = pending.splice(0);
+    for (const msg of toAdd) {
+      newMessages.push({
+        type: "message",
+        id: crypto.randomUUID(),
+        role: "user",
+        content: [{ type: "text", text: msg }],
+        timestamp: Date.now(),
+      });
+    }
+    await compactIfNeeded();
+    return true;
+  };
+
   while (true) {
+    if (context.abortSignal?.aborted) return abortResponse();
+
     const turn = await streamTurn();
+
+    if (context.abortSignal?.aborted) return abortResponse();
 
     if (turn.isError) {
       await persistNewMessages();
-      const pending = context.pendingMessages;
-      if (pending && pending.length > 0) {
-        const toAdd = pending.splice(0);
-        for (const msg of toAdd) {
-          newMessages.push({
-            type: "message",
-            id: crypto.randomUUID(),
-            role: "user",
-            content: [{ type: "text", text: msg }],
-            timestamp: Date.now(),
-          });
-        }
-        await compactIfNeeded();
+      if (context.abortSignal?.aborted) return abortResponse();
+      if (await drainPending()) {
         finalResponse = turn.error;
         lastResult = { message: finalResponse, isError: true };
         continue;
@@ -171,6 +191,8 @@ export const runAgentLoop = async (
 
       // Check and compact the conversation after all tool calls and results
       await compactIfNeeded();
+
+      if (context.abortSignal?.aborted) return abortResponse();
     } else {
       // no tool calls — final response for the current user turn
       newMessages.push({
@@ -183,23 +205,9 @@ export const runAgentLoop = async (
       lastResult = { message: finalResponse, isError: false };
       await persistNewMessages();
 
-      // If there are pending messages queued while this iteration was running,
-      // drain all at once into the next iteration.
-      const pending = context.pendingMessages;
-      if (pending && pending.length > 0) {
-        const toAdd = pending.splice(0);
-        for (const msg of toAdd) {
-          newMessages.push({
-            type: "message",
-            id: crypto.randomUUID(),
-            role: "user",
-            content: [{ type: "text", text: msg }],
-            timestamp: Date.now(),
-          });
-        }
-        await compactIfNeeded();
-        continue;
-      }
+      if (context.abortSignal?.aborted) return abortResponse();
+
+      if (await drainPending()) continue;
 
       break;
     }

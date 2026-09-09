@@ -96,13 +96,9 @@ export const App = ({ onExit }: AppProps) => {
     void getAvailableModels().then(setModels);
   }, [boot]);
 
+  // ctrl+c is intentionally not handled — avoids accidental exit/interrupt
   useKeyboard(
-    useCallback(
-      (key) => {
-        if (key.name === "c" && key.ctrl) onExit();
-      },
-      [onExit],
-    ),
+    useCallback(() => {}, []),
   );
 
   const handleAuthKey = useCallback(
@@ -203,6 +199,14 @@ export const App = ({ onExit }: AppProps) => {
     [agent, ui, onExit],
   );
 
+  const handleInterrupt = useCallback(() => {
+    if (!agent || !ui.streaming) return;
+    agent.interrupt();
+    ui.setStatus("interrupted");
+    // The running loop will abort, clear pending, and resolve with "Interrupted";
+    // onQueueChange + prompt's then will finalize UI.
+  }, [agent, ui]);
+
   const handleSubmit = useCallback(
     (input: string, tag: "command" | "prompt") => {
       if (tag === "command") {
@@ -234,7 +238,13 @@ export const App = ({ onExit }: AppProps) => {
       void current
         .prompt(input)
         .then((result) => {
-          if (result.isError) ui.pushError("No output produced.");
+          if (result.isError) {
+            if (result.message === "Interrupted") {
+              ui.addSystemMessage("Interrupted");
+            } else {
+              ui.pushError("No output produced.");
+            }
+          }
           setSessionName(current.currentSessionName || "New Session");
         })
         .catch((error: unknown) => {
@@ -346,6 +356,7 @@ export const App = ({ onExit }: AppProps) => {
         model={model}
         agentMode={agentMode}
         onSubmit={handleSubmit}
+        onInterrupt={handleInterrupt}
       />
     </box>
   );

@@ -28,7 +28,6 @@ export const SessionPicker = ({ sessions, onPick, onCancel }: SessionPickerProps
     useCallback(
       (key) => {
         if (key.name === "escape") onCancel();
-        if (key.name === "c" && key.ctrl) onCancel();
       },
       [onCancel],
     ),

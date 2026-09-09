@@ -25,7 +25,7 @@ const STEPS = [
   "Establishing uplink",
 ];
 
-const TOTAL_DURATION = 2600;
+const TOTAL_DURATION = 850;
 
 export const BootAnimation = ({ onComplete, durationMs = TOTAL_DURATION }: BootAnimationProps) => {
   const [elapsed, setElapsed] = useState(0);
@@ -36,6 +36,7 @@ export const BootAnimation = ({ onComplete, durationMs = TOTAL_DURATION }: BootA
   useKeyboard(
     useCallback(
       (key) => {
+        // ctrl+c is ignored — no exit/interrupt
         if (key.ctrl && key.name === "c") return;
         if (key.name) onComplete();
       },
@@ -51,7 +52,7 @@ export const BootAnimation = ({ onComplete, durationMs = TOTAL_DURATION }: BootA
       setElapsed(e);
       if (e >= durationMs) {
         clearInterval(tick);
-        setTimeout(onComplete, 180);
+        setTimeout(onComplete, 80);
       }
     }, 40);
 
@@ -81,7 +82,7 @@ export const BootAnimation = ({ onComplete, durationMs = TOTAL_DURATION }: BootA
     return Math.min(idx, STEPS.length - 1);
   }, [elapsed, durationMs]);
 
-  const logoProgress = Math.min(LOGO.length, Math.max(1, Math.ceil((elapsed / 650) * LOGO.length)));
+  const logoProgress = Math.min(LOGO.length, Math.max(1, Math.ceil((elapsed / 320) * LOGO.length)));
   const isDone = progress >= 100;
 
   const barWidth = termWidth < 60 ? 20 : termWidth < 76 ? 28 : 36;

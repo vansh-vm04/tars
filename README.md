@@ -2,7 +2,7 @@
 
 TARS is a terminal-based AI coding agent built with TypeScript and Node.js. It uses the Gemini API to understand tasks, inspect codebases, modify files, execute commands, and verify changes through an interactive terminal UI powered by OpenTUI.
 
-https://github.com/user-attachments/assets/3874db7d-a37d-4387-9077-fd8fca826fad
+https://github.com/user-attachments/assets/41ca45fd-e313-4162-b70f-a2f2868ba38f
 
 ## Installation
 
